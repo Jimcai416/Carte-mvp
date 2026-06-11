@@ -1,0 +1,10 @@
+name = "dishlens-api"
+main = "src/index.js"
+compatibility_date = "2026-01-01"
+
+# Optional but recommended: dish image cache.
+# Create with:  npx wrangler kv namespace create DISH_IMAGES
+# then paste the id below and uncomment.
+# [[kv_namespaces]]
+# binding = "DISH_IMAGES"
+# id = "YOUR_KV_NAMESPACE_ID"
