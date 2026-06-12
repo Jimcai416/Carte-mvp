@@ -10,10 +10,11 @@ import {
   Platform,
   KeyboardAvoidingView,
 } from "react-native";
-import { API_URL } from "../lib/api";
+import { API_URL, APP_KEY } from "../lib/api";
+import { useT } from "../lib/i18n";
 import { colors, fonts, radius, space } from "../theme";
 
-const APP_VERSION = "0.3.0";
+const APP_VERSION = "0.5.0";
 
 export default function FeedbackSheet({
   visible,
@@ -22,6 +23,7 @@ export default function FeedbackSheet({
   visible: boolean;
   onClose: () => void;
 }) {
+  const t = useT();
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
 
@@ -32,7 +34,7 @@ export default function FeedbackSheet({
     try {
       const res = await fetch(`${API_URL}/feedback`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-app-key": APP_KEY },
         body: JSON.stringify({
           message,
           meta: `${Platform.OS} ${Platform.Version} · v${APP_VERSION}`,
@@ -41,12 +43,9 @@ export default function FeedbackSheet({
       if (!res.ok) throw new Error(String(res.status));
       setText("");
       onClose();
-      Alert.alert("Thank you!", "Your report has been sent.");
+      Alert.alert(t("fbThanksTitle"), t("fbThanksBody"));
     } catch {
-      Alert.alert(
-        "Couldn't send",
-        "Check your connection and try again in a moment."
-      );
+      Alert.alert(t("fbErrTitle"), t("fbErrBody"));
     } finally {
       setSending(false);
     }
@@ -59,15 +58,13 @@ export default function FeedbackSheet({
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <View style={styles.sheet}>
-          <Text style={styles.title}>Report a bug</Text>
-          <Text style={styles.sub}>
-            What went wrong? Which menu were you scanning?
-          </Text>
+          <Text style={styles.title}>{t("fbTitle")}</Text>
+          <Text style={styles.sub}>{t("fbSub")}</Text>
           <TextInput
             style={styles.input}
             multiline
-            placeholder="e.g. Scanned a Thai menu, prices came back wrong…"
-            placeholderTextColor={colors.inkSoft}
+            placeholder={t("fbPlaceholder")}
+            placeholderTextColor={colors.muted}
             value={text}
             onChangeText={setText}
             maxLength={2000}
@@ -75,14 +72,14 @@ export default function FeedbackSheet({
           />
           <View style={styles.row}>
             <Pressable style={styles.cancel} onPress={onClose} disabled={sending}>
-              <Text style={styles.cancelText}>Cancel</Text>
+              <Text style={styles.cancelText}>{t("fbCancel")}</Text>
             </Pressable>
             <Pressable
               style={[styles.send, (!text.trim() || sending) && styles.sendDisabled]}
               onPress={send}
               disabled={!text.trim() || sending}
             >
-              <Text style={styles.sendText}>{sending ? "Sending…" : "Send"}</Text>
+              <Text style={styles.sendText}>{sending ? t("fbSending") : t("fbSend")}</Text>
             </Pressable>
           </View>
         </View>
@@ -94,24 +91,21 @@ export default function FeedbackSheet({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: "rgba(34,28,22,0.45)",
+    backgroundColor: "rgba(0,0,0,0.6)",
     justifyContent: "center",
     padding: space(6),
   },
   sheet: {
-    backgroundColor: colors.paper,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.line,
     borderRadius: radius.card,
     padding: space(5),
   },
-  title: { fontFamily: fonts.display, fontSize: 22, color: colors.ink },
-  sub: {
-    fontFamily: fonts.body,
-    fontSize: 13,
-    color: colors.inkSoft,
-    marginTop: space(1),
-  },
+  title: { fontFamily: fonts.display, fontSize: 22, color: colors.cream },
+  sub: { fontFamily: fonts.body, fontSize: 13, color: colors.muted, marginTop: space(1) },
   input: {
-    backgroundColor: colors.card,
+    backgroundColor: colors.night,
     borderWidth: 1,
     borderColor: colors.line,
     borderRadius: radius.image,
@@ -120,23 +114,18 @@ const styles = StyleSheet.create({
     marginTop: space(4),
     fontFamily: fonts.body,
     fontSize: 15,
-    color: colors.ink,
+    color: colors.cream,
     textAlignVertical: "top",
   },
-  row: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    gap: space(3),
-    marginTop: space(4),
-  },
+  row: { flexDirection: "row", justifyContent: "flex-end", gap: space(3), marginTop: space(4) },
   cancel: { paddingVertical: space(3), paddingHorizontal: space(4) },
-  cancelText: { fontFamily: fonts.body, fontSize: 15, color: colors.inkSoft },
+  cancelText: { fontFamily: fonts.body, fontSize: 15, color: colors.muted },
   send: {
-    backgroundColor: colors.lacquer,
+    backgroundColor: colors.gold,
     borderRadius: radius.pill,
     paddingVertical: space(3),
     paddingHorizontal: space(6),
   },
   sendDisabled: { opacity: 0.4 },
-  sendText: { color: "#FFF", fontFamily: fonts.body, fontSize: 15, fontWeight: "700" },
+  sendText: { color: colors.goldInk, fontFamily: fonts.body, fontSize: 15, fontWeight: "700" },
 });

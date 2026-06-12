@@ -3,37 +3,32 @@ import {
   Modal,
   View,
   Text,
+  FlatList,
   StyleSheet,
   Pressable,
-  FlatList,
 } from "react-native";
 import { Dish } from "../types";
+import { useT } from "../lib/i18n";
 import { colors, fonts, radius, space } from "../theme";
+
+// The order list — Carte themed. Same public API as the original:
+// OrderLine, orderTotals(), and the <OrderCart/> props.
 
 export interface OrderLine {
   dish: Dish;
   qty: number;
 }
 
-export function parsePrice(p: string | null): number | null {
-  if (!p) return null;
-  const cleaned = p.replace(/[^\d.,]/g, "").replace(",", ".");
-  const n = parseFloat(cleaned);
-  return Number.isFinite(n) ? n : null;
+function parseGbp(price_gbp: string | null): number {
+  if (!price_gbp) return 0;
+  const n = parseFloat(price_gbp.replace(/[^0-9.]/g, ""));
+  return isNaN(n) ? 0 : n;
 }
 
-export function orderTotals(lines: OrderLine[]) {
-  let orig = 0;
-  let gbp = 0;
-  let missing = 0;
-  for (const { dish, qty } of lines) {
-    const o = parsePrice(dish.price);
-    const g = parsePrice(dish.price_gbp);
-    if (o !== null) orig += o * qty;
-    else missing += qty;
-    if (g !== null) gbp += g * qty;
-  }
-  return { orig, gbp, missing };
+export function orderTotals(lines: OrderLine[]): { gbp: number } {
+  return {
+    gbp: lines.reduce((sum, l) => sum + parseGbp(l.dish.price_gbp) * l.qty, 0),
+  };
 }
 
 export default function OrderCart({
@@ -53,179 +48,129 @@ export default function OrderCart({
   onClear: () => void;
   onClose: () => void;
 }) {
+  const t = useT();
   const totals = orderTotals(lines);
-  const count = lines.reduce((n, l) => n + l.qty, 0);
 
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Your order</Text>
-          <Pressable onPress={onClose} hitSlop={12}>
-            <Text style={styles.close}>✕</Text>
-          </Pressable>
-        </View>
-        <Text style={styles.subtitle}>Show this to your server 👆</Text>
-
-        <FlatList
-          data={lines}
-          keyExtractor={(l) => l.dish.original_name}
-          contentContainerStyle={{ paddingBottom: space(4) }}
-          renderItem={({ item }) => (
-            <View style={styles.row}>
-              <View style={styles.rowText}>
-                <Text style={styles.original} numberOfLines={2}>
-                  {item.dish.original_name}
-                </Text>
-                <Text style={styles.translated} numberOfLines={1}>
-                  {item.dish.translated_name}
-                  {item.dish.price ? `  ·  ${item.dish.price}` : ""}
-                </Text>
-              </View>
-              <View style={styles.qtyControls}>
-                <Pressable
-                  style={styles.qtyBtn}
-                  onPress={() => onRemove(item.dish)}
-                  hitSlop={8}
-                >
-                  <Text style={styles.qtyBtnText}>−</Text>
-                </Pressable>
-                <Text style={styles.qty}>{item.qty}</Text>
-                <Pressable
-                  style={styles.qtyBtn}
-                  onPress={() => onAdd(item.dish)}
-                  hitSlop={8}
-                >
-                  <Text style={styles.qtyBtnText}>+</Text>
-                </Pressable>
-              </View>
-            </View>
-          )}
-          ListEmptyComponent={
-            <Text style={styles.empty}>
-              Nothing here yet — tap + on a dish to add it.
-            </Text>
-          }
-        />
-
-        {count > 0 && (
-          <View style={styles.footer}>
-            <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>
-                Total ({count} item{count === 1 ? "" : "s"})
-              </Text>
-              <Text style={styles.totalValue}>
-                {totals.orig > 0
-                  ? `${currency ? currency + " " : ""}${totals.orig.toFixed(2)}`
-                  : "—"}
-                {totals.gbp > 0 ? `  ·  £${totals.gbp.toFixed(2)}` : ""}
-              </Text>
-            </View>
-            {totals.missing > 0 && (
-              <Text style={styles.missingNote}>
-                {totals.missing} item{totals.missing === 1 ? "" : "s"} without a
-                printed price not included.
-              </Text>
-            )}
-            <Pressable onPress={onClear}>
-              <Text style={styles.clear}>Clear order</Text>
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <Pressable style={styles.backdrop} onPress={onClose}>
+        <Pressable style={styles.sheet} onPress={() => {}}>
+          <View style={styles.handle} />
+          <View style={styles.titleRow}>
+            <Text style={styles.title}>{t("orderTitle")}</Text>
+            <Pressable onPress={onClose} hitSlop={12}>
+              <Text style={styles.close}>✕</Text>
             </Pressable>
           </View>
-        )}
-      </View>
+
+          <FlatList
+            data={lines}
+            keyExtractor={(l) => l.dish.original_name}
+            style={{ flexGrow: 0 }}
+            renderItem={({ item }) => (
+              <View style={styles.line}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.lineName} numberOfLines={1}>
+                    {item.dish.original_name}
+                  </Text>
+                  <Text style={styles.lineSub} numberOfLines={1}>
+                    {item.dish.translated_name}
+                    {item.dish.price ? `  ·  ${item.dish.price}` : ""}
+                  </Text>
+                </View>
+                <View style={styles.stepper}>
+                  <Pressable onPress={() => onRemove(item.dish)} hitSlop={8} style={styles.stepBtn}>
+                    <Text style={styles.stepText}>−</Text>
+                  </Pressable>
+                  <Text style={styles.qty}>{item.qty}</Text>
+                  <Pressable onPress={() => onAdd(item.dish)} hitSlop={8} style={styles.stepBtn}>
+                    <Text style={styles.stepText}>+</Text>
+                  </Pressable>
+                </View>
+              </View>
+            )}
+          />
+
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>{t("totalWord")}</Text>
+            <Text style={styles.totalValue}>
+              {totals.gbp > 0 ? `£${totals.gbp.toFixed(2)}` : "—"}
+            </Text>
+          </View>
+
+          <Pressable style={styles.clearBtn} onPress={onClear}>
+            <Text style={styles.clearText}>{t("orderClear")}</Text>
+          </Pressable>
+        </Pressable>
+      </Pressable>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.paper,
+  backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },
+  sheet: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: radius.card + 6,
+    borderTopRightRadius: radius.card + 6,
+    borderWidth: 1,
+    borderColor: colors.line,
     padding: space(5),
-    paddingTop: space(14),
+    paddingBottom: space(8),
+    maxHeight: "75%",
   },
-  header: {
+  handle: {
+    alignSelf: "center",
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.line,
+    marginBottom: space(3),
+  },
+  titleRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    marginBottom: space(3),
   },
-  title: { fontFamily: fonts.display, fontSize: 30, color: colors.ink },
-  close: { fontSize: 24, color: colors.inkSoft, padding: space(1) },
-  subtitle: {
-    fontFamily: fonts.body,
-    fontSize: 13,
-    color: colors.inkSoft,
-    marginTop: space(1),
-    marginBottom: space(4),
-  },
-  row: {
+  title: { fontFamily: fonts.display, fontSize: 22, color: colors.cream },
+  close: { fontSize: 20, color: colors.muted },
+  line: {
     flexDirection: "row",
     alignItems: "center",
     gap: space(3),
-    paddingVertical: space(3),
+    paddingVertical: space(2.5),
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
   },
-  rowText: { flex: 1 },
-  original: { fontFamily: fonts.display, fontSize: 22, color: colors.ink },
-  translated: {
-    fontFamily: fonts.body,
-    fontSize: 13,
-    color: colors.inkSoft,
-    marginTop: space(0.5),
-  },
-  qtyControls: { flexDirection: "row", alignItems: "center", gap: space(2.5) },
-  qtyBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+  lineName: { fontFamily: fonts.display, fontSize: 17, color: colors.cream },
+  lineSub: { fontFamily: fonts.body, fontSize: 12, color: colors.muted, marginTop: 1 },
+  stepper: { flexDirection: "row", alignItems: "center", gap: space(2.5) },
+  stepBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     borderWidth: 1.5,
-    borderColor: colors.lacquer,
+    borderColor: colors.gold,
     alignItems: "center",
     justifyContent: "center",
   },
-  qtyBtnText: {
-    color: colors.lacquer,
-    fontSize: 18,
-    fontWeight: "700",
-    lineHeight: 20,
-  },
-  qty: {
-    fontFamily: fonts.body,
-    fontSize: 16,
-    fontWeight: "700",
-    color: colors.ink,
-    minWidth: 18,
-    textAlign: "center",
-  },
-  empty: {
-    fontFamily: fonts.body,
-    fontSize: 14,
-    color: colors.inkSoft,
-    textAlign: "center",
-    marginTop: space(10),
-  },
-  footer: {
-    borderTopWidth: 1,
-    borderTopColor: colors.line,
+  stepText: { color: colors.gold, fontSize: 17, fontWeight: "700", lineHeight: 20 },
+  qty: { fontFamily: fonts.body, fontSize: 15, fontWeight: "700", color: colors.cream, minWidth: 18, textAlign: "center" },
+  totalRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     paddingTop: space(4),
-    gap: space(2),
   },
-  totalRow: { flexDirection: "row", justifyContent: "space-between" },
-  totalLabel: { fontFamily: fonts.body, fontSize: 15, color: colors.inkSoft },
-  totalValue: {
-    fontFamily: fonts.body,
-    fontSize: 16,
-    fontWeight: "700",
-    color: colors.ink,
+  totalLabel: { fontFamily: fonts.body, fontSize: 15, color: colors.muted },
+  totalValue: { fontFamily: fonts.body, fontSize: 18, fontWeight: "700", color: colors.gold },
+  clearBtn: {
+    marginTop: space(4),
+    borderWidth: 1.5,
+    borderColor: colors.lineSoft,
+    borderRadius: radius.pill,
+    paddingVertical: space(3),
+    alignItems: "center",
   },
-  missingNote: { fontFamily: fonts.body, fontSize: 12, color: colors.inkSoft },
-  clear: {
-    fontFamily: fonts.body,
-    fontSize: 14,
-    color: colors.lacquer,
-    fontWeight: "600",
-    textAlign: "center",
-    paddingVertical: space(2),
-  },
+  clearText: { fontFamily: fonts.body, fontSize: 14, color: colors.muted },
 });

@@ -6,9 +6,6 @@ import PaywallScreen from "./src/screens/PaywallScreen";
 import { Screen, ScanResult } from "./src/types";
 import { colors } from "./src/theme";
 
-// Deliberately no react-navigation at MVP stage — three screens,
-// one state machine, zero native nav dependencies to debug in Expo Go.
-
 export default function App() {
   const [screen, setScreen] = useState<Screen>({ name: "scan" });
   const [lastResult, setLastResult] = useState<{
@@ -18,7 +15,7 @@ export default function App() {
 
   return (
     <SafeAreaView style={styles.root}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.paper} />
+      <StatusBar barStyle="dark-content" backgroundColor={colors.night} />
 
       {screen.name === "scan" && (
         <ScanScreen
@@ -52,5 +49,5 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.paper },
+  root: { flex: 1, backgroundColor: colors.night },
 });

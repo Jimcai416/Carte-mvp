@@ -9,6 +9,7 @@ import {
 import DishCard from "../components/DishCard";
 import OrderSheet from "../components/OrderSheet";
 import OrderCart, { OrderLine, orderTotals } from "../components/OrderCart";
+import { useT } from "../lib/i18n";
 import { Dish, ScanResult } from "../types";
 import { colors, fonts, radius, space } from "../theme";
 
@@ -23,6 +24,7 @@ export default function ResultsScreen({
   onBack: () => void;
   onPaywall: () => void;
 }) {
+  const t = useT();
   const [selected, setSelected] = useState<Dish | null>(null);
   const [order, setOrder] = useState<OrderLine[]>([]);
   const [showCart, setShowCart] = useState(false);
@@ -60,7 +62,7 @@ export default function ResultsScreen({
     <View style={styles.container}>
       <View style={styles.header}>
         <Pressable onPress={onBack} hitSlop={12}>
-          <Text style={styles.back}>‹ Scan again</Text>
+          <Text style={styles.back}>{t("scanAgain")}</Text>
         </Pressable>
         <Text style={styles.headerTitle}>
           {result.cuisine}
@@ -92,16 +94,11 @@ export default function ResultsScreen({
           />
         )}
         ListHeaderComponent={
-          <Text style={styles.tapHint}>
-            Tap a dish for details · tap + to build your order
-          </Text>
+          <Text style={styles.tapHint}>{t("tapHintCart")}</Text>
         }
         ListFooterComponent={<View style={{ height: space(20) }} />}
         ListEmptyComponent={
-          <Text style={styles.empty}>
-            No dishes found on this page. Try a sharper photo of the food
-            section.
-          </Text>
+          <Text style={styles.empty}>{t("noDishes")}</Text>
         }
       />
 
@@ -135,7 +132,7 @@ export default function ResultsScreen({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.paper },
+  container: { flex: 1, backgroundColor: colors.night },
   header: {
     paddingHorizontal: space(4),
     paddingBottom: space(3),
@@ -146,27 +143,29 @@ const styles = StyleSheet.create({
   back: {
     fontFamily: fonts.body,
     fontSize: 15,
-    color: colors.lacquer,
+    color: colors.gold,
     fontWeight: "600",
   },
   headerTitle: {
     fontFamily: fonts.display,
     fontSize: 22,
-    color: colors.ink,
+    color: colors.cream,
   },
   lockBanner: {
-    backgroundColor: colors.lacquerSoft,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.gold,
     margin: space(4),
     marginBottom: 0,
     borderRadius: radius.card,
     padding: space(3.5),
   },
-  lockText: { fontFamily: fonts.body, fontSize: 14, color: colors.ink },
-  lockCta: { color: colors.lacquer, fontWeight: "700" },
+  lockText: { fontFamily: fonts.body, fontSize: 14, color: colors.cream },
+  lockCta: { color: colors.gold, fontWeight: "700" },
   tapHint: {
     fontFamily: fonts.body,
     fontSize: 12,
-    color: colors.inkSoft,
+    color: colors.muted,
     textAlign: "center",
     marginBottom: space(3),
   },
@@ -174,18 +173,18 @@ const styles = StyleSheet.create({
     position: "absolute",
     right: space(4),
     bottom: space(6),
-    backgroundColor: colors.lacquer,
+    backgroundColor: colors.gold,
     borderRadius: radius.pill,
     paddingHorizontal: space(4.5),
     paddingVertical: space(3),
     shadowColor: "#000",
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.35,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
     elevation: 6,
   },
   cartPillText: {
-    color: "#FFF",
+    color: colors.goldInk,
     fontFamily: fonts.body,
     fontSize: 16,
     fontWeight: "700",
@@ -193,7 +192,7 @@ const styles = StyleSheet.create({
   empty: {
     fontFamily: fonts.body,
     fontSize: 14,
-    color: colors.inkSoft,
+    color: colors.muted,
     textAlign: "center",
     marginTop: space(10),
     paddingHorizontal: space(8),

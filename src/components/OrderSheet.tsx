@@ -9,12 +9,12 @@ import {
   Alert,
 } from "react-native";
 import { Dish } from "../types";
+import { useT } from "../lib/i18n";
 import { colors, fonts, radius, space } from "../theme";
 
-// Full-screen "show this to your server" sheet.
-// Share exports the card as an image — requires two optional packages:
-//   npx expo install react-native-view-shot expo-sharing
-// Without them the screen still works; only the Share button explains itself.
+// "Order this" chit. The screen is midnight; the captured card stays light
+// paper so it pops when shared into bright chat threads.
+// Share requires: npx expo install react-native-view-shot expo-sharing
 
 export default function OrderSheet({
   dish,
@@ -23,23 +23,21 @@ export default function OrderSheet({
   dish: Dish | null;
   onClose: () => void;
 }) {
+  const t = useT();
   const cardRef = useRef<View>(null);
 
   async function share() {
     try {
-      // Loaded lazily so the app runs even before these are installed.
       const { captureRef } = require("react-native-view-shot");
       const Sharing = require("expo-sharing");
       const uri = await captureRef(cardRef, { format: "png", quality: 1 });
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(uri);
-      } else {
-        Alert.alert("Sharing unavailable", "This device can't open the share sheet.");
       }
     } catch {
       Alert.alert(
         "One-time setup needed",
-        "In the project folder run:\n\nnpx expo install react-native-view-shot expo-sharing\n\nthen restart the app."
+        "Run: npx expo install react-native-view-shot expo-sharing, then restart."
       );
     }
   }
@@ -55,11 +53,7 @@ export default function OrderSheet({
 
         <View style={styles.card} ref={cardRef} collapsable={false}>
           {dish.image_url ? (
-            <Image
-              source={{ uri: dish.image_url }}
-              style={styles.image}
-              resizeMode="cover"
-            />
+            <Image source={{ uri: dish.image_url }} style={styles.image} resizeMode="cover" />
           ) : null}
 
           <Text
@@ -71,9 +65,7 @@ export default function OrderSheet({
             {dish.original_name}
           </Text>
 
-          {dish.romanized ? (
-            <Text style={styles.romanized}>{dish.romanized}</Text>
-          ) : null}
+          {dish.romanized ? <Text style={styles.romanized}>{dish.romanized}</Text> : null}
 
           <Text style={styles.translated}>{dish.translated_name}</Text>
 
@@ -86,17 +78,17 @@ export default function OrderSheet({
             </View>
           ) : null}
 
-          <Text style={styles.wordmark}>DishLens</Text>
+          <Text style={styles.wordmark}>Carte</Text>
         </View>
 
-        <Text style={styles.hint}>Show this to your server 👆</Text>
+        <Text style={styles.hint}>{t("orderHint")}</Text>
 
         <View style={styles.buttons}>
           <Pressable style={styles.shareBtn} onPress={share}>
-            <Text style={styles.shareBtnText}>Share as image</Text>
+            <Text style={styles.shareBtnText}>{t("shareImage")}</Text>
           </Pressable>
           <Pressable style={styles.doneBtn} onPress={onClose}>
-            <Text style={styles.doneBtnText}>Done</Text>
+            <Text style={styles.doneBtnText}>{t("done")}</Text>
           </Pressable>
         </View>
       </View>
@@ -107,17 +99,15 @@ export default function OrderSheet({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.paper,
+    backgroundColor: colors.night,
     padding: space(5),
     paddingTop: space(14),
   },
   closeWrap: { position: "absolute", top: space(14), right: space(5), zIndex: 2 },
-  close: { fontSize: 24, color: colors.inkSoft },
+  close: { fontSize: 24, color: colors.muted },
   card: {
-    backgroundColor: colors.card,
+    backgroundColor: colors.paper,
     borderRadius: radius.card,
-    borderWidth: 1,
-    borderColor: colors.line,
     padding: space(6),
     alignItems: "center",
     marginTop: space(4),
@@ -127,7 +117,7 @@ const styles = StyleSheet.create({
     height: 160,
     borderRadius: radius.image,
     marginBottom: space(5),
-    backgroundColor: colors.flagBg,
+    backgroundColor: colors.paperLine,
   },
   original: {
     fontFamily: fonts.display,
@@ -140,7 +130,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     fontSize: 16,
     fontStyle: "italic",
-    color: colors.inkSoft,
+    color: "#6E6257",
     marginTop: space(2),
     textAlign: "center",
   },
@@ -153,41 +143,41 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   pricePill: {
-    backgroundColor: colors.lacquer,
+    backgroundColor: colors.gold,
     borderRadius: radius.pill,
     paddingHorizontal: space(4),
     paddingVertical: space(1.5),
     marginTop: space(4),
   },
-  priceText: { color: "#FFF", fontFamily: fonts.body, fontSize: 15, fontWeight: "700" },
+  priceText: { color: colors.goldInk, fontFamily: fonts.body, fontSize: 15, fontWeight: "700" },
   wordmark: {
     fontFamily: fonts.display,
     fontSize: 13,
-    letterSpacing: 1,
-    color: colors.lacquer,
+    letterSpacing: 3,
+    color: colors.gold,
     marginTop: space(5),
   },
   hint: {
     fontFamily: fonts.body,
     fontSize: 14,
-    color: colors.inkSoft,
+    color: colors.muted,
     textAlign: "center",
     marginTop: space(4),
   },
   buttons: { marginTop: "auto", gap: space(3) },
   shareBtn: {
-    backgroundColor: colors.lacquer,
+    backgroundColor: colors.gold,
     borderRadius: radius.pill,
     paddingVertical: space(4),
     alignItems: "center",
   },
-  shareBtnText: { color: "#FFF", fontFamily: fonts.body, fontSize: 16, fontWeight: "700" },
+  shareBtnText: { color: colors.goldInk, fontFamily: fonts.body, fontSize: 16, fontWeight: "700" },
   doneBtn: {
     borderWidth: 1.5,
-    borderColor: colors.ink,
+    borderColor: colors.lineSoft,
     borderRadius: radius.pill,
     paddingVertical: space(4),
     alignItems: "center",
   },
-  doneBtnText: { color: colors.ink, fontFamily: fonts.body, fontSize: 16, fontWeight: "600" },
+  doneBtnText: { color: colors.cream, fontFamily: fonts.body, fontSize: 16, fontWeight: "600" },
 });

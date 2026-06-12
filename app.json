@@ -1,21 +1,21 @@
 {
   "expo": {
-    "name": "DishLens",
+    "name": "Carte",
     "slug": "dishlens",
-    "version": "0.4.0",
+    "version": "0.5.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "backgroundColor": "#FBF6EE"
+      "backgroundColor": "#F7F3EA"
     },
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.playbook.dishlens",
       "infoPlist": {
-        "NSCameraUsageDescription": "DishLens uses the camera to scan restaurant menus.",
-        "NSPhotoLibraryUsageDescription": "DishLens lets you choose a menu photo from your library.",
+        "NSCameraUsageDescription": "Carte uses the camera to scan restaurant menus.",
+        "NSPhotoLibraryUsageDescription": "Carte lets you choose a menu photo from your library.",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
@@ -31,7 +31,7 @@
       [
         "expo-image-picker",
         {
-          "cameraPermission": "DishLens uses the camera to scan restaurant menus."
+          "cameraPermission": "Carte uses the camera to scan restaurant menus."
         }
       ]
     ],
