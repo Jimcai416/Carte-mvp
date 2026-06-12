@@ -8,3 +8,7 @@ compatibility_date = "2026-01-01"
 # [[kv_namespaces]]
 # binding = "DISH_IMAGES"
 # id = "YOUR_KV_NAMESPACE_ID"
+
+[[kv_namespaces]]
+binding = "FEEDBACK"
+id = "8cdef6ff25ef4c4a81d93f1603f07020"

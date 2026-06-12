@@ -26,15 +26,21 @@ export default function DishCard({
   dish,
   locked,
   onUnlockPress,
+  onPress,
+  onAdd,
+  qty = 0,
 }: {
   dish: Dish;
   locked: boolean;
   onUnlockPress: () => void;
+  onPress?: () => void;
+  onAdd?: () => void;
+  qty?: number;
 }) {
   const hasImage = !!dish.image_url;
 
   return (
-    <View style={styles.card}>
+    <Pressable style={styles.card} onPress={onPress}>
       <View style={styles.imageWrap}>
         {hasImage ? (
           <Image
@@ -66,6 +72,20 @@ export default function DishCard({
             </Text>
           </View>
         )}
+
+        {onAdd && (
+          <Pressable
+            style={[styles.addBtn, qty > 0 && styles.addBtnActive]}
+            onPress={onAdd}
+            hitSlop={8}
+          >
+            <Text
+              style={[styles.addBtnText, qty > 0 && styles.addBtnTextActive]}
+            >
+              {qty > 0 ? `${qty} ✓` : "+"}
+            </Text>
+          </Pressable>
+        )}
       </View>
 
       <View style={styles.body}>
@@ -94,7 +114,7 @@ export default function DishCard({
           </View>
         )}
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -141,13 +161,40 @@ const styles = StyleSheet.create({
   },
   priceTag: {
     position: "absolute",
-    right: space(2.5),
+    left: space(2.5),
     bottom: space(2.5),
     backgroundColor: colors.lacquer,
     paddingHorizontal: space(2.5),
     paddingVertical: space(1),
     borderRadius: radius.pill,
   },
+  addBtn: {
+    position: "absolute",
+    right: space(2.5),
+    bottom: space(2.5),
+    minWidth: 42,
+    height: 42,
+    paddingHorizontal: space(2),
+    borderRadius: 21,
+    backgroundColor: colors.card,
+    borderWidth: 1.5,
+    borderColor: colors.lacquer,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+  },
+  addBtnActive: { backgroundColor: colors.lacquer },
+  addBtnText: {
+    color: colors.lacquer,
+    fontSize: 20,
+    fontWeight: "700",
+    lineHeight: 24,
+  },
+  addBtnTextActive: { color: "#FFF", fontSize: 15 },
   priceText: {
     color: "#FFF",
     fontFamily: fonts.body,

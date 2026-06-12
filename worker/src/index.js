@@ -12,17 +12,24 @@
 //   GOOGLE_CSE_CX       optional — Programmable Search Engine ID (image search on)
 // KV binding (optional but recommended): DISH_IMAGES
 
-const MODEL = "claude-sonnet-4-20250514";
-const MAX_DISHES = 40;
+// Haiku: ~3-4x faster than Sonnet for extraction tasks like this.
+// Override per-deploy with `wrangler secret put MODEL` if quality needs a bump
+// (e.g. back to "claude-sonnet-4-20250514").
+const DEFAULT_MODEL = "claude-haiku-4-5-20251001";
+const MAX_DISHES = 80;
+const MAX_TOKENS = 16000;
 
-const SYSTEM_PROMPT = `You are DishLens, an expert menu reader for travellers. You read restaurant menu photos in any language and explain every dish plainly to an English speaker.
+const systemPrompt = (lang) => `You are DishLens, an expert menu reader for travellers. You read restaurant menu photos in any language and explain every dish plainly to a ${lang} speaker.
 
 Rules:
-- Extract ONLY food and drink items actually printed on the menu. Skip headers, addresses, slogans.
-- Descriptions are one plain sentence saying what the dish actually IS — preparation and key ingredients. Never marketing language.
-- "worth_it" is one short line of honest ordering advice (classic order, tourist trap, great value, skip if you dislike X). Use null if you have nothing useful to say.
+- Extract EVERY food and drink item printed on the menu — completeness is critical. If the menu has 60 dishes, return 60 dishes. Never summarise, sample, or skip sections.
+- NEVER output section or category headers (e.g. "Antipasti", "Carne e Pollame", "Desserts", "Sides") as dishes. A dish is something a diner can order, usually with its own price. If you catch yourself writing "section header" in a description, omit that item entirely.
+- Write "translated_name", "description" and "worth_it" in ${lang}. If the menu is already in ${lang}, still fill these fields (translated_name may match the original).
+- Descriptions: ONE short sentence (max 14 words) saying what the dish actually IS. Never marketing language.
+- For wine, sake, beer, and spirits lists: the description should give grape/style/region and a 2-3 word flavour profile (e.g. "Tuscan Sangiovese — bold, cherry, dry"). "worth_it" can suggest what it pairs with.
+- "worth_it" is one short line (max 10 words) of honest ordering advice. Use null when you have nothing useful — most dishes should be null; reserve it for standouts, classics, and traps.
 - For prices: copy exactly as printed into "price". Guess the currency from language/context into "currency" (ISO code) at the top level. Convert each price to GBP using approximate current rates into "price_gbp" formatted like "£4.80". If no price is printed, use null for both.
-- "image_query" must be a short English search query that returns photos of this exact dish, e.g. "wonton lo mein noodles".
+- "image_query" must ALWAYS be a short English search query that returns photos of this exact dish, e.g. "wonton lo mein noodles" — English regardless of the target language.
 - "spice_level": 0 none, 1 mild, 2 medium, 3 hot.
 - Respond with ONLY valid JSON. No markdown, no code fences, no preamble.
 
@@ -37,7 +44,6 @@ JSON schema:
       "romanized": string | null,
       "translated_name": string,
       "description": string,
-      "ingredients": string[],
       "price": string | null,
       "price_gbp": string | null,
       "spice_level": 0 | 1 | 2 | 3,
@@ -58,6 +64,29 @@ export default {
     if (request.method === "OPTIONS") return new Response(null, { headers: cors });
 
     const url = new URL(request.url);
+
+    // ---- Feedback endpoint: stores bug reports in KV ----
+    if (request.method === "POST" && url.pathname === "/feedback") {
+      let fb;
+      try {
+        fb = await request.json();
+      } catch {
+        return json({ error: "Invalid JSON body" }, 400, cors);
+      }
+      const message = (fb?.message || "").toString().trim().slice(0, 2000);
+      if (!message) return json({ error: "message required" }, 400, cors);
+      const entry = {
+        message,
+        meta: (fb?.meta || "").toString().slice(0, 500),
+        date: new Date().toISOString(),
+      };
+      if (!env.FEEDBACK) {
+        return json({ error: "Feedback storage not configured" }, 500, cors);
+      }
+      await env.FEEDBACK.put(`fb:${Date.now()}`, JSON.stringify(entry));
+      return json({ ok: true }, 200, cors);
+    }
+
     if (request.method !== "POST" || url.pathname !== "/scan") {
       return json({ error: "POST /scan" }, 404, cors);
     }
@@ -68,31 +97,46 @@ export default {
     } catch {
       return json({ error: "Invalid JSON body" }, 400, cors);
     }
-    const { imageBase64, mediaType } = body || {};
+    const { imageBase64, mediaType, targetLanguage } = body || {};
     if (!imageBase64) return json({ error: "imageBase64 required" }, 400, cors);
+    const lang = typeof targetLanguage === "string" && targetLanguage.trim()
+      ? targetLanguage.trim().slice(0, 40)
+      : "English";
 
     // ---- 1. Parse the menu with Claude ----
     let parsed;
     try {
-      parsed = await parseMenu(env, imageBase64, mediaType || "image/jpeg");
+      parsed = await parseMenu(env, imageBase64, mediaType || "image/jpeg", lang);
     } catch (e) {
       return json({ error: `Menu parsing failed: ${e.message}` }, 502, cors);
     }
 
-    // ---- 2. Resolve dish images (cache-first, in parallel) ----
+    // ---- 2. Resolve dish images (cache-first, batched to respect rate limits) ----
+    // Cloudflare free tier: ~50 subrequests per request. Brave free tier: 1 req/sec.
+    // We cap lookups and process in small waves; KV cache fills the gaps over time.
     const dishes = (parsed.dishes || []).slice(0, MAX_DISHES);
-    await Promise.all(
-      dishes.map(async (dish) => {
-        dish.image_url = await resolveImage(env, dish);
-      })
-    );
+    const cap = parseInt(env.IMAGE_LOOKUP_CAP || "45", 10);
+    const batchSize = parseInt(env.IMAGE_BATCH_SIZE || "10", 10);
+    const toLookup = dishes.slice(0, cap);
+
+    for (let i = 0; i < toLookup.length; i += batchSize) {
+      const batch = toLookup.slice(i, i + batchSize);
+      await Promise.all(
+        batch.map(async (dish) => {
+          dish.image_url = await resolveImage(env, dish);
+        })
+      );
+    }
+    for (const dish of dishes) {
+      if (dish.image_url === undefined) dish.image_url = null;
+    }
     parsed.dishes = dishes;
 
     return json(parsed, 200, cors);
   },
 };
 
-async function parseMenu(env, imageBase64, mediaType) {
+async function parseMenu(env, imageBase64, mediaType, lang = "English") {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -101,9 +145,9 @@ async function parseMenu(env, imageBase64, mediaType) {
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      model: MODEL,
-      max_tokens: 8000,
-      system: SYSTEM_PROMPT,
+      model: env.MODEL || DEFAULT_MODEL,
+      max_tokens: MAX_TOKENS,
+      system: systemPrompt(lang),
       messages: [
         {
           role: "user",
@@ -173,11 +217,38 @@ async function resolveImage(env, dish) {
   return link;
 }
 
-async function braveImage(env, dish) {
+// Domains that produce watermarked stock, ad creatives, or recipe title-cards.
+const IMAGE_DOMAIN_BLOCKLIST = [
+  "pinterest.",
+  "alamy.com",
+  "shutterstock.com",
+  "gettyimages.",
+  "istockphoto.com",
+  "dreamstime.com",
+  "depositphotos.com",
+  "123rf.com",
+  "stock.adobe.com",
+  "vectorstock.com",
+  "etsy.com",
+  "amazon.",
+  "ebay.",
+];
+
+function isBlockedSource(result) {
+  const src = (
+    result?.url ||
+    result?.meta_url?.hostname ||
+    result?.source ||
+    ""
+  ).toLowerCase();
+  return IMAGE_DOMAIN_BLOCKLIST.some((d) => src.includes(d));
+}
+
+async function braveImage(env, dish, attempt = 0) {
   try {
     const q = encodeURIComponent(`${dish.image_query} dish food`);
     const res = await fetch(
-      `https://api.search.brave.com/res/v1/images/search?q=${q}&count=1&safesearch=strict`,
+      `https://api.search.brave.com/res/v1/images/search?q=${q}&count=3&safesearch=strict`,
       {
         headers: {
           Accept: "application/json",
@@ -185,12 +256,17 @@ async function braveImage(env, dish) {
         },
       }
     );
+    if (res.status === 429 && attempt < 1) {
+      // Rate limited — wait a beat and retry once.
+      await new Promise((r) => setTimeout(r, 1100));
+      return braveImage(env, dish, attempt + 1);
+    }
     if (!res.ok) return null;
     const data = await res.json();
-    const first = data.results?.[0];
-    // Prefer the full image URL; fall back to Brave's hosted thumbnail,
-    // which is reliable and hotlink-friendly.
-    return first?.properties?.url || first?.thumbnail?.src || null;
+    const results = data.results || [];
+    // First non-blocklisted candidate; fall back to the first result at all.
+    const pick = results.find((r) => !isBlockedSource(r)) || results[0];
+    return pick?.properties?.url || pick?.thumbnail?.src || null;
   } catch {
     return null;
   }

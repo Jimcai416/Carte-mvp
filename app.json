@@ -2,8 +2,9 @@
   "expo": {
     "name": "DishLens",
     "slug": "dishlens",
-    "version": "0.1.0",
+    "version": "0.4.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
@@ -14,7 +15,8 @@
       "bundleIdentifier": "com.playbook.dishlens",
       "infoPlist": {
         "NSCameraUsageDescription": "DishLens uses the camera to scan restaurant menus.",
-        "NSPhotoLibraryUsageDescription": "DishLens lets you choose a menu photo from your library."
+        "NSPhotoLibraryUsageDescription": "DishLens lets you choose a menu photo from your library.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -31,8 +33,7 @@
         {
           "cameraPermission": "DishLens uses the camera to scan restaurant menus."
         }
-      ],
-      "expo-asset"
+      ]
     ],
     "extra": {
       "eas": {

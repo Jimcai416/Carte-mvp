@@ -8,12 +8,17 @@ export class ScanError extends Error {}
 
 export async function scanMenu(
   base64: string,
-  mediaType: string
+  mediaType: string,
+  targetLanguage: string = "English"
 ): Promise<ScanResult> {
   const res = await fetch(`${API_URL}/scan`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ imageBase64: base64, mediaType }),
+    body: JSON.stringify({
+      imageBase64: base64,
+      mediaType,
+      targetLanguage,
+    }),
   });
 
   if (!res.ok) {
