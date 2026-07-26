@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { Dish } from "../types";
 import { useT } from "../lib/i18n";
+import { convertedPriceForDish } from "../lib/currency";
 import { colors, fonts, radius, space } from "../theme";
 
 // "Order this" chit. The screen is midnight; the captured card stays light
@@ -19,9 +20,11 @@ import { colors, fonts, radius, space } from "../theme";
 export default function OrderSheet({
   dish,
   onClose,
+  showConverted = true,
 }: {
   dish: Dish | null;
   onClose: () => void;
+  showConverted?: boolean;
 }) {
   const t = useT();
   const cardRef = useRef<View>(null);
@@ -43,6 +46,7 @@ export default function OrderSheet({
   }
 
   if (!dish) return null;
+  const convertedPrice = showConverted ? convertedPriceForDish(dish) : null;
 
   return (
     <Modal visible transparent={false} animationType="slide" onRequestClose={onClose}>
@@ -73,7 +77,7 @@ export default function OrderSheet({
             <View style={styles.pricePill}>
               <Text style={styles.priceText}>
                 {dish.price}
-                {dish.price_gbp ? `  ·  ${dish.price_gbp}` : ""}
+                {convertedPrice ? `  ·  ${convertedPrice}` : ""}
               </Text>
             </View>
           ) : null}
@@ -99,7 +103,7 @@ export default function OrderSheet({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.night,
+    backgroundColor: colors.background,
     padding: space(5),
     paddingTop: space(14),
   },
@@ -120,9 +124,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.paperLine,
   },
   original: {
-    fontFamily: fonts.display,
-    fontSize: 64,
-    lineHeight: 74,
+    fontFamily: fonts.native,
+    fontSize: 56,
+    lineHeight: 66,
+    fontWeight: "600",
     color: colors.ink,
     textAlign: "center",
   },
@@ -130,31 +135,30 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     fontSize: 16,
     fontStyle: "italic",
-    color: "#6E6257",
+    color: colors.muted,
     marginTop: space(2),
     textAlign: "center",
   },
   translated: {
-    fontFamily: fonts.body,
+    fontFamily: fonts.bodySemibold,
     fontSize: 18,
-    fontWeight: "600",
     color: colors.ink,
     marginTop: space(3),
     textAlign: "center",
   },
   pricePill: {
-    backgroundColor: colors.gold,
+    backgroundColor: colors.accent,
     borderRadius: radius.pill,
     paddingHorizontal: space(4),
     paddingVertical: space(1.5),
     marginTop: space(4),
   },
-  priceText: { color: colors.goldInk, fontFamily: fonts.body, fontSize: 15, fontWeight: "700" },
+  priceText: { color: colors.onAccent, fontFamily: fonts.bodyBold, fontSize: 15 },
   wordmark: {
     fontFamily: fonts.display,
     fontSize: 13,
     letterSpacing: 3,
-    color: colors.gold,
+    color: colors.accent,
     marginTop: space(5),
   },
   hint: {
@@ -166,18 +170,18 @@ const styles = StyleSheet.create({
   },
   buttons: { marginTop: "auto", gap: space(3) },
   shareBtn: {
-    backgroundColor: colors.gold,
+    backgroundColor: colors.accent,
     borderRadius: radius.pill,
     paddingVertical: space(4),
     alignItems: "center",
   },
-  shareBtnText: { color: colors.goldInk, fontFamily: fonts.body, fontSize: 16, fontWeight: "700" },
+  shareBtnText: { color: colors.onAccent, fontFamily: fonts.bodyBold, fontSize: 16 },
   doneBtn: {
     borderWidth: 1.5,
-    borderColor: colors.lineSoft,
+    borderColor: colors.lineStrong,
     borderRadius: radius.pill,
     paddingVertical: space(4),
     alignItems: "center",
   },
-  doneBtnText: { color: colors.cream, fontFamily: fonts.body, fontSize: 16, fontWeight: "600" },
+  doneBtnText: { color: colors.text, fontFamily: fonts.bodySemibold, fontSize: 16 },
 });

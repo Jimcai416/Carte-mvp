@@ -55,13 +55,13 @@ export default function PaywallScreen({ onClose }: { onClose: () => void }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.night, padding: space(6) },
+  container: { flex: 1, backgroundColor: colors.background, padding: space(6) },
   close: { fontSize: 22, color: colors.muted, alignSelf: "flex-end", padding: space(2) },
   title: {
     fontFamily: fonts.display,
     fontSize: 32,
     lineHeight: 40,
-    color: colors.cream,
+    color: colors.text,
     marginTop: space(4),
   },
   sub: {
@@ -79,16 +79,16 @@ const styles = StyleSheet.create({
     padding: space(4),
     backgroundColor: colors.surface,
   },
-  planFeatured: { borderColor: colors.gold },
+  planFeatured: { borderColor: colors.accent },
   planBadge: {
     fontFamily: fonts.mono,
     fontSize: 10,
     letterSpacing: 1,
-    color: colors.gold,
+    color: colors.accent,
     textTransform: "uppercase",
     marginBottom: space(1),
   },
-  planName: { fontFamily: fonts.body, fontSize: 16, fontWeight: "600", color: colors.cream },
+  planName: { fontFamily: fonts.body, fontSize: 16, fontWeight: "600", color: colors.text },
   planPrice: { fontFamily: fonts.body, fontSize: 14, color: colors.muted, marginTop: space(0.5) },
   devReset: {
     fontFamily: fonts.body,

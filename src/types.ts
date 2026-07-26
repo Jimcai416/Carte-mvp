@@ -13,13 +13,15 @@ export type DishFlag =
   | "house_special";
 
 export interface Dish {
+  category?: string | null;    // section printed on the menu, e.g. "Starters"
   original_name: string;       // as printed on the menu, original script
   romanized: string | null;    // e.g. "wan tan lo mein"
-  translated_name: string;     // English
+  translated_name: string;     // target app language
   description: string;         // one plain sentence: what it actually is
-  ingredients: string[];
+  ingredients?: string[];      // optional for scans saved before v0.5.3
   price: string | null;        // as printed, e.g. "48"
-  price_gbp: string | null;    // rough GBP conversion, e.g. "£4.80"
+  price_gbp?: string | null;   // legacy GBP conversion for older app versions
+  converted_price?: string | null; // conversion in ScanResult.display_currency
   spice_level: 0 | 1 | 2 | 3;
   flags: DishFlag[];
   worth_it: string | null;     // one-line ordering advice
@@ -30,11 +32,11 @@ export interface Dish {
 export interface ScanResult {
   cuisine: string;             // e.g. "Cantonese"
   currency: string | null;     // ISO code guessed from the menu, e.g. "HKD"
+  display_currency?: string | null; // currency selected by the user
   menu_language: string;       // e.g. "Traditional Chinese"
   dishes: Dish[];
 }
 
 export type Screen =
   | { name: "scan" }
-  | { name: "results"; result: ScanResult; locked: boolean }
-  | { name: "paywall" };
+  | { name: "results"; result: ScanResult };
