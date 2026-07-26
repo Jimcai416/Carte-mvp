@@ -1,53 +1,86 @@
-import React, { useState } from "react";
-import { SafeAreaView, StatusBar, StyleSheet } from "react-native";
+import React, { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  StatusBar,
+  StyleSheet,
+  View,
+} from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { useFonts } from "expo-font";
+import { CormorantGaramond_500Medium } from "@expo-google-fonts/cormorant-garamond/500Medium";
+import { CormorantGaramond_600SemiBold } from "@expo-google-fonts/cormorant-garamond/600SemiBold";
+import { DMSans_400Regular } from "@expo-google-fonts/dm-sans/400Regular";
+import { DMSans_500Medium } from "@expo-google-fonts/dm-sans/500Medium";
+import { DMSans_600SemiBold } from "@expo-google-fonts/dm-sans/600SemiBold";
+import { DMSans_700Bold } from "@expo-google-fonts/dm-sans/700Bold";
 import ScanScreen from "./src/screens/ScanScreen";
 import ResultsScreen from "./src/screens/ResultsScreen";
-import PaywallScreen from "./src/screens/PaywallScreen";
 import { Screen, ScanResult } from "./src/types";
 import { colors } from "./src/theme";
+import { AmbientBackdrop } from "./src/components/GlassSurface";
+import { track } from "./src/lib/analytics";
+import { withMonitoring } from "./src/lib/monitoring";
 
-export default function App() {
+function App() {
   const [screen, setScreen] = useState<Screen>({ name: "scan" });
-  const [lastResult, setLastResult] = useState<{
-    result: ScanResult;
-    locked: boolean;
-  } | null>(null);
+  const [fontsLoaded] = useFonts({
+    CormorantGaramond_500Medium,
+    CormorantGaramond_600SemiBold,
+    DMSans_400Regular,
+    DMSans_500Medium,
+    DMSans_600SemiBold,
+    DMSans_700Bold,
+  });
+
+  useEffect(() => {
+    void track("app_opened");
+  }, []);
+
+  if (!fontsLoaded) {
+    return (
+      <View style={styles.fontLoading}>
+        <ActivityIndicator color={colors.accent} />
+      </View>
+    );
+  }
 
   return (
-    <SafeAreaView style={styles.root}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.night} />
-
-      {screen.name === "scan" && (
-        <ScanScreen
-          onResult={(result, locked) => {
-            setLastResult({ result, locked });
-            setScreen({ name: "results", result, locked });
-          }}
+    <SafeAreaProvider>
+      <View style={styles.root}>
+        <StatusBar
+          barStyle="dark-content"
+          backgroundColor="transparent"
+          translucent
         />
-      )}
+        <AmbientBackdrop />
 
-      {screen.name === "results" && (
-        <ResultsScreen
-          result={screen.result}
-          locked={screen.locked}
-          onBack={() => setScreen({ name: "scan" })}
-          onPaywall={() => setScreen({ name: "paywall" })}
-        />
-      )}
+        {screen.name === "scan" && (
+          <ScanScreen
+            onResult={(result: ScanResult) =>
+              setScreen({ name: "results", result })
+            }
+          />
+        )}
 
-      {screen.name === "paywall" && (
-        <PaywallScreen
-          onClose={() =>
-            lastResult
-              ? setScreen({ name: "results", ...lastResult })
-              : setScreen({ name: "scan" })
-          }
-        />
-      )}
-    </SafeAreaView>
+        {screen.name === "results" && (
+          <ResultsScreen
+            result={screen.result}
+            onBack={() => setScreen({ name: "scan" })}
+          />
+        )}
+      </View>
+    </SafeAreaProvider>
   );
 }
 
+export default withMonitoring(App);
+
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.night },
+  root: { flex: 1, backgroundColor: colors.background },
+  fontLoading: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.background,
+  },
 });

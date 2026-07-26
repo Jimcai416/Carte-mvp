@@ -1,0 +1,22 @@
+node_modules/
+.expo/
+dist/
+web-build/
+
+# Expo / EAS local state
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Environment and local tooling
+.env
+.env.*
+!.env.example
+.DS_Store
+*.log
+
+# Cloudflare local state
+worker/.wrangler/
+.wrangler/

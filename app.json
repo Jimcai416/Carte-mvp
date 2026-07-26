@@ -2,13 +2,13 @@
   "expo": {
     "name": "Carte",
     "slug": "dishlens",
-    "version": "0.5.2",
+    "version": "0.5.12",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "backgroundColor": "#F7F3EA"
+      "backgroundColor": "#FFF4E5"
     },
     "ios": {
       "supportsTablet": false,
@@ -23,7 +23,9 @@
       "package": "com.playbook.dishlens",
       "permissions": [
         "android.permission.CAMERA",
-        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_IMAGES"
+      ],
+      "blockedPermissions": [
         "android.permission.RECORD_AUDIO"
       ]
     },
@@ -31,9 +33,11 @@
       [
         "expo-image-picker",
         {
-          "cameraPermission": "Carte uses the camera to scan restaurant menus."
+          "cameraPermission": "Carte uses the camera to scan restaurant menus.",
+          "microphonePermission": false
         }
-      ]
+      ],
+      "@sentry/react-native/expo"
     ],
     "extra": {
       "eas": {

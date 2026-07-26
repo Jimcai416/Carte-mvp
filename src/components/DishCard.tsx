@@ -1,118 +1,151 @@
 import React from "react";
-import { View, Text, Image, StyleSheet, Pressable } from "react-native";
-import { BlurView } from "expo-blur";
-import { Dish } from "../types";
+import {
+  GestureResponderEvent,
+  Image,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { useT } from "../lib/i18n";
+import { Dish, DishFlag } from "../types";
 import { colors, fonts, radius, space } from "../theme";
 
-const FLAG_LABELS: Record<string, string> = {
-  spicy: "Spicy",
-  raw: "Raw",
-  offal: "Offal",
-  contains_nuts: "Nuts",
-  contains_shellfish: "Shellfish",
-  contains_gluten: "Gluten",
-  contains_dairy: "Dairy",
-  vegetarian: "Vegetarian",
-  vegan: "Vegan",
-  house_special: "House special",
+const FLAG_KEYS: Record<DishFlag, string> = {
+  spicy: "flagSpicy",
+  raw: "flagRaw",
+  offal: "flagOffal",
+  contains_nuts: "flagNuts",
+  contains_shellfish: "flagShellfish",
+  contains_gluten: "flagGluten",
+  contains_dairy: "flagDairy",
+  vegetarian: "flagVegetarian",
+  vegan: "flagVegan",
+  house_special: "flagHouseSpecial",
 };
 
-function Chillies({ level }: { level: number }) {
-  if (!level) return null;
-  return <Text style={styles.chilli}>{"🌶".repeat(level)}</Text>;
+export function DishFlagPill({ flag }: { flag: DishFlag }) {
+  const t = useT();
+  const positive = flag === "vegetarian" || flag === "vegan" || flag === "house_special";
+  const warning = flag.startsWith("contains_") || flag === "raw" || flag === "offal";
+
+  return (
+    <View
+      style={[
+        styles.flag,
+        positive && styles.flagPositive,
+        warning && styles.flagWarning,
+      ]}
+    >
+      <Text
+        style={[
+          styles.flagText,
+          positive && styles.flagTextPositive,
+          warning && styles.flagTextWarning,
+        ]}
+      >
+        {t(FLAG_KEYS[flag] as any)}
+      </Text>
+    </View>
+  );
 }
 
 export default function DishCard({
   dish,
-  locked,
-  onUnlockPress,
   onPress,
   onAdd,
+  convertedPrice,
   qty = 0,
 }: {
   dish: Dish;
-  locked: boolean;
-  onUnlockPress: () => void;
   onPress?: () => void;
   onAdd?: () => void;
+  convertedPrice?: string | null;
   qty?: number;
 }) {
-  const hasImage = !!dish.image_url;
+  const t = useT();
+
+  function handleAdd(event: GestureResponderEvent) {
+    event.stopPropagation();
+    onAdd?.();
+  }
 
   return (
-    <Pressable style={styles.card} onPress={onPress}>
+    <Pressable
+      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+      onPress={onPress}
+    >
       <View style={styles.imageWrap}>
-        {hasImage ? (
-          <Image
-            source={{ uri: dish.image_url! }}
-            style={styles.image}
-            resizeMode="cover"
-          />
+        {dish.image_url ? (
+          <Image source={{ uri: dish.image_url }} style={styles.image} resizeMode="cover" />
         ) : (
           <View style={[styles.image, styles.placeholder]}>
             <Text style={styles.placeholderGlyph}>
-              {dish.original_name.slice(0, 1)}
+              {dish.original_name.trim().slice(0, 1).toUpperCase()}
             </Text>
           </View>
         )}
-
-        {locked && (
-          <Pressable style={StyleSheet.absoluteFill} onPress={onUnlockPress}>
-            <BlurView intensity={45} tint="light" style={styles.blur}>
-              <Text style={styles.blurLabel}>Unlock photos</Text>
-            </BlurView>
-          </Pressable>
-        )}
-
-        {dish.price && (
-          <View style={styles.priceTag}>
-            <Text style={styles.priceText}>
-              {dish.price}
-              {dish.price_gbp ? `  ·  ${dish.price_gbp}` : ""}
-            </Text>
+        {dish.spice_level > 0 && (
+          <View style={styles.spiceBadge}>
+            <Text style={styles.spiceText}>{"•".repeat(dish.spice_level)}</Text>
           </View>
-        )}
-
-        {onAdd && (
-          <Pressable
-            style={[styles.addBtn, qty > 0 && styles.addBtnActive]}
-            onPress={onAdd}
-            hitSlop={8}
-          >
-            <Text
-              style={[styles.addBtnText, qty > 0 && styles.addBtnTextActive]}
-            >
-              {qty > 0 ? `${qty} ✓` : "+"}
-            </Text>
-          </Pressable>
         )}
       </View>
 
       <View style={styles.body}>
-        <Text style={styles.originalName}>{dish.original_name}</Text>
-        <View style={styles.nameRow}>
-          <Text style={styles.translatedName}>{dish.translated_name}</Text>
-          <Chillies level={dish.spice_level} />
+        <View style={styles.topLine}>
+          <Text style={styles.originalName} numberOfLines={1}>
+            {dish.original_name}
+          </Text>
+          {dish.price || convertedPrice ? (
+            <View style={styles.priceGroup}>
+              {dish.price ? (
+                <Text style={styles.priceText} numberOfLines={1}>
+                  {dish.price}
+                </Text>
+              ) : null}
+              {convertedPrice ? (
+                <Text style={styles.convertedPrice} numberOfLines={1}>
+                  {convertedPrice}
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
         </View>
-        {dish.romanized ? (
-          <Text style={styles.romanized}>{dish.romanized}</Text>
+
+        <Text style={styles.translatedName} numberOfLines={1}>
+          {dish.translated_name}
+        </Text>
+
+        {dish.description ? (
+          <Text style={styles.description} numberOfLines={2}>
+            {dish.description}
+          </Text>
         ) : null}
 
-        <Text style={styles.description}>{dish.description}</Text>
-
-        {dish.worth_it ? (
-          <Text style={styles.worthIt}>“{dish.worth_it}”</Text>
-        ) : null}
-
-        {dish.flags.length > 0 && (
+        <View style={styles.footer}>
           <View style={styles.flagRow}>
-            {dish.flags.map((f) => (
-              <View key={f} style={styles.flag}>
-                <Text style={styles.flagText}>{FLAG_LABELS[f] ?? f}</Text>
-              </View>
+            {dish.flags.slice(0, 2).map((flag) => (
+              <DishFlagPill key={flag} flag={flag} />
             ))}
+            {dish.flags.length > 2 && (
+              <Text style={styles.moreFlags}>+{dish.flags.length - 2}</Text>
+            )}
           </View>
-        )}
+
+          {onAdd && (
+            <Pressable
+              style={[styles.addBtn, qty > 0 && styles.addBtnActive]}
+              onPress={handleAdd}
+              hitSlop={8}
+              accessibilityLabel={t("addToOrder")}
+            >
+              <Text style={[styles.addBtnText, qty > 0 && styles.addBtnTextActive]}>
+                {qty > 0 ? qty : "+"}
+              </Text>
+            </Pressable>
+          )}
+        </View>
       </View>
     </Pressable>
   );
@@ -120,136 +153,152 @@ export default function DishCard({
 
 const styles = StyleSheet.create({
   card: {
+    minHeight: 114,
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: colors.surface,
-    borderRadius: radius.card,
-    marginHorizontal: space(4),
-    marginBottom: space(4),
-    overflow: "hidden",
+    borderRadius: radius.image,
+    marginHorizontal: space(5),
+    marginBottom: space(2.5),
+    padding: space(2),
     borderWidth: 1,
     borderColor: colors.line,
   },
+  cardPressed: { opacity: 0.78, transform: [{ scale: 0.995 }] },
   imageWrap: {
-    height: 180,
-    backgroundColor: colors.night,
+    // Both dimensions must be explicit. A percentage-height Image inside a
+    // minHeight-only parent can be measured from the remote image's intrinsic
+    // aspect ratio on iOS, which lets one portrait image stretch the whole row.
+    width: 124,
+    height: 96,
+    flexShrink: 0,
+    borderRadius: radius.image - 4,
+    overflow: "hidden",
+    backgroundColor: colors.background,
   },
   image: { width: "100%", height: "100%" },
-  placeholder: {
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.night,
-  },
+  placeholder: { alignItems: "center", justifyContent: "center" },
   placeholderGlyph: {
     fontFamily: fonts.display,
-    fontSize: 64,
-    color: colors.line,
+    fontSize: 48,
+    color: colors.lineStrong,
   },
-  blur: {
+  spiceBadge: {
+    position: "absolute",
+    left: space(2),
+    bottom: space(2),
+    borderRadius: radius.pill,
+    backgroundColor: colors.danger,
+    paddingHorizontal: space(1.5),
+    paddingVertical: 2,
+  },
+  spiceText: {
+    color: "#FFF",
+    fontSize: 10,
+    letterSpacing: 1,
+    lineHeight: 10,
+  },
+  body: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  blurLabel: {
-    fontFamily: fonts.body,
-    fontSize: 13,
-    fontWeight: "600",
-    color: colors.goldInk,
-    backgroundColor: colors.gold,
-    paddingHorizontal: space(3),
-    paddingVertical: space(1.5),
-    borderRadius: radius.pill,
-    overflow: "hidden",
-  },
-  priceTag: {
-    position: "absolute",
-    left: space(2.5),
-    bottom: space(2.5),
-    backgroundColor: colors.gold,
-    paddingHorizontal: space(2.5),
+    minHeight: 96,
+    paddingLeft: space(3),
+    paddingRight: space(1),
     paddingVertical: space(1),
-    borderRadius: radius.pill,
   },
-  addBtn: {
-    position: "absolute",
-    right: space(2.5),
-    bottom: space(2.5),
-    minWidth: 42,
-    height: 42,
-    paddingHorizontal: space(2),
-    borderRadius: 21,
-    backgroundColor: colors.surface,
-    borderWidth: 1.5,
-    borderColor: colors.gold,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
+  topLine: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: space(2),
   },
-  addBtnActive: { backgroundColor: colors.gold },
-  addBtnText: {
-    color: colors.gold,
-    fontSize: 20,
-    fontWeight: "700",
-    lineHeight: 24,
-  },
-  addBtnTextActive: { color: colors.goldInk, fontSize: 15 },
-  priceText: {
-    color: colors.goldInk,
-    fontFamily: fonts.body,
-    fontSize: 13,
-    fontWeight: "700",
-  },
-  body: { padding: space(4) },
   originalName: {
-    fontFamily: fonts.display,
-    fontSize: 26,
-    color: colors.cream,
-    marginBottom: space(0.5),
+    flex: 1,
+    fontFamily: fonts.bodySemibold,
+    fontSize: 15,
+    lineHeight: 19,
+    color: colors.text,
   },
-  nameRow: { flexDirection: "row", alignItems: "center", gap: space(2) },
+  priceText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 12,
+    color: colors.accentStrong,
+  },
+  priceGroup: { alignItems: "flex-end", flexShrink: 0 },
+  convertedPrice: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 8,
+    lineHeight: 11,
+    color: colors.muted,
+    marginTop: 1,
+  },
   translatedName: {
     fontFamily: fonts.body,
-    fontSize: 16,
-    fontWeight: "600",
-    color: colors.cream,
-  },
-  chilli: { fontSize: 13 },
-  romanized: {
-    fontFamily: fonts.body,
-    fontSize: 13,
+    fontSize: 11,
+    lineHeight: 15,
     color: colors.muted,
-    fontStyle: "italic",
-    marginTop: space(0.5),
+    marginTop: 1,
   },
   description: {
     fontFamily: fonts.body,
-    fontSize: 14,
-    lineHeight: 20,
-    color: colors.muted,
-    marginTop: space(2),
+    fontSize: 11,
+    lineHeight: 15,
+    color: colors.text,
+    marginTop: space(1.5),
+    opacity: 0.82,
   },
-  worthIt: {
-    fontFamily: fonts.body,
-    fontSize: 14,
-    lineHeight: 20,
-    color: colors.goldSoft,
-    marginTop: space(2),
+  footer: {
+    minHeight: 30,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
+    marginTop: "auto",
+    paddingTop: space(1),
   },
   flagRow: {
+    flex: 1,
     flexDirection: "row",
+    alignItems: "center",
+    gap: space(1),
     flexWrap: "wrap",
-    gap: space(1.5),
-    marginTop: space(3),
+    paddingRight: space(1),
   },
   flag: {
-    backgroundColor: colors.night,
-    borderWidth: 1,
-    borderColor: colors.line,
     borderRadius: radius.pill,
-    paddingHorizontal: space(2.5),
-    paddingVertical: space(1),
+    backgroundColor: colors.background,
+    paddingHorizontal: space(1.5),
+    paddingVertical: 3,
   },
-  flagText: { fontFamily: fonts.body, fontSize: 12, color: colors.muted },
+  flagPositive: { backgroundColor: colors.sageWash },
+  flagWarning: { backgroundColor: colors.dangerWash },
+  flagText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 8,
+    lineHeight: 10,
+    color: colors.muted,
+  },
+  flagTextPositive: { color: colors.sage },
+  flagTextWarning: { color: colors.danger },
+  moreFlags: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 8,
+    color: colors.muted,
+  },
+  addBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: 1.5,
+    borderColor: colors.accent,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.surface,
+  },
+  addBtnActive: { backgroundColor: colors.accent, borderColor: colors.accent },
+  addBtnText: {
+    color: colors.accent,
+    fontFamily: fonts.bodyBold,
+    fontSize: 18,
+    lineHeight: 20,
+  },
+  addBtnTextActive: { color: colors.onAccent, fontSize: 12 },
 });

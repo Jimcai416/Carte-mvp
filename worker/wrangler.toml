@@ -1,6 +1,10 @@
 name = "dishlens-api"
 main = "src/index.js"
-compatibility_date = "2026-01-01"
+compatibility_date = "2026-07-26"
+
+[vars]
+REQUIRE_CLIENT_ID = "true"
+DAILY_SCAN_LIMIT = "20"
 
 # Optional but recommended: dish image cache.
 # Create with:  npx wrangler kv namespace create DISH_IMAGES
@@ -12,3 +16,36 @@ compatibility_date = "2026-01-01"
 [[kv_namespaces]]
 binding = "FEEDBACK"
 id = "8cdef6ff25ef4c4a81d93f1603f07020"
+
+# Beta events are strict, content-free data points. The dataset is created
+# automatically on the first write and retains data for three months.
+[[analytics_engine_datasets]]
+binding = "ANALYTICS"
+dataset = "carte_beta_events"
+
+# Short-window limits prevent bursts from reaching the paid AI pipeline.
+[[ratelimits]]
+name = "SCAN_BURST_LIMITER"
+namespace_id = "120260726"
+
+  [ratelimits.simple]
+  limit = 6
+  period = 60
+
+[[ratelimits]]
+name = "EVENTS_RATE_LIMITER"
+namespace_id = "120260727"
+
+  [ratelimits.simple]
+  limit = 120
+  period = 60
+
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+# For larger public launches, create a dedicated namespace. The beta safely
+# falls back to the existing FEEDBACK namespace with isolated `scan:` keys.
+# [[kv_namespaces]]
+# binding = "SCAN_LIMITS"
+# id = "YOUR_SCAN_LIMITS_KV_ID"
