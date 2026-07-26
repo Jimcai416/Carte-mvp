@@ -1,4 +1,4 @@
-# DishLens — MVP test build
+# Carte — MVP test build
 
 Point it at any menu. See every dish.
 
