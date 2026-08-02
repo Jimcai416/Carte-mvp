@@ -34,7 +34,7 @@ jobs:
         run: npm run export:web
         env:
           EXPO_NO_TELEMETRY: "1"
-          TAVUE_WEB_BASE_URL: "/Carte-mvp"
+          TAVUE_WEB_BASE_URL: ${{ format('/{0}', github.event.repository.name) }}
 
       - name: Prepare Pages artifact
         run: touch dist/.nojekyll
