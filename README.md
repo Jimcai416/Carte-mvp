@@ -2,7 +2,7 @@
   <img src="./assets/icon.png" alt="Carte app icon" width="128" />
   <h1>Carte</h1>
   <p>Point Carte at any restaurant menu. See every dish in your language.</p>
-  <p><strong>Version 0.6.2 · Web server handoff fix</strong></p>
+  <p><strong>Version 0.7.0 · The app remembers the way you eat</strong></p>
 </div>
 
 Carte turns a photo of a restaurant menu into a clear, visual guide. It
@@ -33,7 +33,7 @@ is not reachable and does not limit the beta.
 
 ## Beta safeguards
 
-Version 0.6.2 retains the infrastructure required for controlled testing:
+Version 0.7.0 retains the infrastructure required for controlled testing:
 
 - Privacy-safe, first-party product analytics through Cloudflare Analytics Engine
 - Sentry crash monitoring with PII, screenshots and menu content disabled

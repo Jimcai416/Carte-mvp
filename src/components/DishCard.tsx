@@ -56,12 +56,14 @@ export default function DishCard({
   onAdd,
   convertedPrice,
   qty = 0,
+  personalRisk = false,
 }: {
   dish: Dish;
   onPress?: () => void;
   onAdd?: () => void;
   convertedPrice?: string | null;
   qty?: number;
+  personalRisk?: boolean;
 }) {
   const t = useT();
 
@@ -88,6 +90,11 @@ export default function DishCard({
         {dish.spice_level > 0 && (
           <View style={styles.spiceBadge}>
             <Text style={styles.spiceText}>{"•".repeat(dish.spice_level)}</Text>
+          </View>
+        )}
+        {personalRisk && (
+          <View style={styles.riskBadge}>
+            <Text style={styles.riskText}>CHECK</Text>
           </View>
         )}
       </View>
@@ -197,6 +204,21 @@ const styles = StyleSheet.create({
     fontSize: 10,
     letterSpacing: 1,
     lineHeight: 10,
+  },
+  riskBadge: {
+    position: "absolute",
+    right: space(2),
+    top: space(2),
+    borderRadius: radius.pill,
+    backgroundColor: colors.danger,
+    paddingHorizontal: space(2),
+    paddingVertical: 3,
+  },
+  riskText: {
+    color: "#FFF",
+    fontFamily: fonts.bodyBold,
+    fontSize: 8,
+    letterSpacing: 0.8,
   },
   body: {
     flex: 1,

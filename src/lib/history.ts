@@ -1,8 +1,10 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Platform } from "react-native";
 import { ScanResult } from "../types";
 
 const KEY = "dishlens.history";
-const MAX_SAVED = 10;
+// Web is the instant, single-meal entry point. The app is the durable product.
+const MAX_SAVED = Platform.OS === "web" ? 10 : 250;
 
 export interface SavedScan {
   id: string;

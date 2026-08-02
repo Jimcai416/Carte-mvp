@@ -38,6 +38,7 @@ import {
   setCurrency,
 } from "../lib/currency";
 import FeedbackSheet from "../components/FeedbackSheet";
+import FoodProfileSheet from "../components/FoodProfileSheet";
 import GlassSurface, { EdgeGlass } from "../components/GlassSurface";
 import { ScanResult } from "../types";
 import { colors, fonts, radius, shadow, space } from "../theme";
@@ -134,6 +135,7 @@ export default function ScanScreen({
   const [history, setHistory] = useState<SavedScan[]>([]);
   const [showAllHistory, setShowAllHistory] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
+  const [showFoodProfile, setShowFoodProfile] = useState(false);
   const ticketAnim = useRef(new Animated.Value(0)).current;
   const scrollY = useRef(new Animated.Value(0)).current;
   const requestRef = useRef<AbortController | null>(null);
@@ -190,13 +192,15 @@ export default function ScanScreen({
       quality: 0.7,
       base64: true,
       allowsEditing: false,
+      allowsMultipleSelection: !fromCamera,
+      selectionLimit: fromCamera ? 1 : 8,
     };
     const picked = fromCamera
       ? await ImagePicker.launchCameraAsync(opts)
       : await ImagePicker.launchImageLibraryAsync(opts);
 
-    const asset = picked.canceled ? null : picked.assets?.[0];
-    if (!asset?.base64) return;
+    const assets = picked.canceled ? [] : (picked.assets ?? []).filter((asset) => !!asset.base64);
+    if (!assets.length) return;
 
     const source = fromCamera ? "camera" : "library";
     const startedAt = Date.now();
@@ -204,7 +208,7 @@ export default function ScanScreen({
 
     const controller = new AbortController();
     requestRef.current = controller;
-    setPreviewUri(asset.uri);
+    setPreviewUri(assets[0].uri);
     setLoadingLine(0);
     setBusy(true);
 
@@ -213,13 +217,23 @@ export default function ScanScreen({
     }, 2400);
 
     try {
-      const result = await scanMenu(
-        asset.base64,
-        asset.mimeType ?? "image/jpeg",
-        getLanguage(),
-        targetCurrency,
-        controller.signal
-      );
+      const pages: ScanResult[] = [];
+      for (const asset of assets) {
+        setPreviewUri(asset.uri);
+        pages.push(await scanMenu(
+          asset.base64!,
+          asset.mimeType ?? "image/jpeg",
+          getLanguage(),
+          targetCurrency,
+          controller.signal
+        ));
+      }
+      const first = pages[0];
+      const result: ScanResult = {
+        ...first,
+        dishes: pages.flatMap((page) => page.dishes),
+        page_count: pages.length,
+      };
 
       saveScan(result, getLanguage());
       void track("scan_completed", {
@@ -509,6 +523,17 @@ export default function ScanScreen({
           <Text style={styles.wordmarkSub}>MENU, MADE CLEAR</Text>
         </View>
         <View style={styles.topControls}>
+          {Platform.OS !== "web" && (
+            <GlassSurface style={styles.profileGlass} intensity={46}>
+              <Pressable
+                style={styles.profilePill}
+                onPress={() => setShowFoodProfile(true)}
+                accessibilityLabel="Food profile"
+              >
+                <Text style={styles.profileGlyph}>♡</Text>
+              </Pressable>
+            </GlassSurface>
+          )}
           <GlassSurface style={styles.currencyGlass} intensity={46}>
             <Pressable
               style={styles.currencyPill}
@@ -532,6 +557,7 @@ export default function ScanScreen({
       </View>
 
       <FeedbackSheet visible={showFeedback} onClose={() => setShowFeedback(false)} />
+      <FoodProfileSheet visible={showFoodProfile} onClose={() => setShowFoodProfile(false)} />
 
       <Modal
         visible={showLangPicker}
@@ -689,6 +715,23 @@ const styles = StyleSheet.create({
   currencyGlass: {
     minWidth: 58,
     borderRadius: radius.pill,
+  },
+  profileGlass: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+  },
+  profilePill: {
+    width: 36,
+    height: 36,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  profileGlyph: {
+    fontFamily: fonts.bodySemibold,
+    fontSize: 17,
+    lineHeight: 18,
+    color: colors.accentStrong,
   },
   langPill: {
     flexDirection: "row",
