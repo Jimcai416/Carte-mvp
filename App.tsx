@@ -20,11 +20,14 @@ import { Screen, ScanResult } from "./src/types";
 import { colors } from "./src/theme";
 import { AmbientBackdrop } from "./src/components/GlassSurface";
 import { track } from "./src/lib/analytics";
-import { withMonitoring } from "./src/lib/monitoring";
+import { captureOperationalError, withMonitoring } from "./src/lib/monitoring";
+
+const WEB_FONT_TIMEOUT_MS = 5_000;
 
 function App() {
   const [screen, setScreen] = useState<Screen>({ name: "scan" });
-  const [fontsLoaded] = useFonts({
+  const [webFontFallbackReady, setWebFontFallbackReady] = useState(false);
+  const [fontsLoaded, fontError] = useFonts({
     CormorantGaramond_500Medium,
     CormorantGaramond_600SemiBold,
     DMSans_400Regular,
@@ -36,6 +39,26 @@ function App() {
   useEffect(() => {
     void track("app_opened");
   }, []);
+
+  useEffect(() => {
+    if (fontError) {
+      captureOperationalError({ operation: "startup", errorCode: "font_load_failed" });
+    }
+  }, [fontError]);
+
+  useEffect(() => {
+    if (Platform.OS !== "web" || fontsLoaded || fontError) return;
+
+    // A missing web font must never block the whole product. This is especially
+    // important for subpath hosts where a bad asset base URL can otherwise leave
+    // Android browsers on the launch spinner forever.
+    const timeout = setTimeout(() => {
+      setWebFontFallbackReady(true);
+      captureOperationalError({ operation: "startup", errorCode: "font_load_timeout" });
+    }, WEB_FONT_TIMEOUT_MS);
+
+    return () => clearTimeout(timeout);
+  }, [fontError, fontsLoaded]);
 
   useEffect(() => {
     if (Platform.OS !== "web" || typeof document === "undefined") return;
@@ -51,7 +74,7 @@ function App() {
     document.body.style.overscrollBehaviorY = "none";
   }, []);
 
-  if (!fontsLoaded) {
+  if (!fontsLoaded && !fontError && !webFontFallbackReady) {
     return (
       <View style={styles.fontLoading}>
         <ActivityIndicator color={colors.accent} />

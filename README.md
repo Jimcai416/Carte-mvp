@@ -2,7 +2,7 @@
   <img src="./assets/tavue-icon.png" alt="Tavue app icon" width="128" />
   <h1>Tavue</h1>
   <p>Point Tavue at any restaurant menu. See every dish in your language.</p>
-  <p><strong>Version 0.8.0 · TAVUE rebrand and release polish</strong></p>
+  <p><strong>Version 0.8.1 · Android Web startup reliability</strong></p>
 </div>
 
 Tavue turns a photo of a restaurant menu into a clear, visual guide. It
@@ -33,7 +33,7 @@ is not reachable and does not limit the beta.
 
 ## Beta safeguards
 
-Version 0.8.0 retains the infrastructure required for controlled testing:
+Version 0.8.1 retains the infrastructure required for controlled testing:
 
 - Privacy-safe, first-party product analytics through Cloudflare Analytics Engine
 - Sentry crash monitoring with PII, screenshots and menu content disabled
