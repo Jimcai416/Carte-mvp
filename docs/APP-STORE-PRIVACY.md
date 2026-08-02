@@ -1,6 +1,6 @@
 # App Store privacy answers
 
-Use this as the conservative App Store Connect disclosure for Carte 0.5.12.
+Use this as the conservative App Store Connect disclosure for Carte 0.5.13.
 Re-check it whenever a provider or SDK changes.
 
 ## URLs
@@ -10,7 +10,7 @@ Re-check it whenever a provider or SDK changes.
 - Support URL:
   `https://dishlens-api.jimcai416.workers.dev/support`
 
-These URLs become current after the v12 Worker is deployed.
+These URLs become current after the v0.5.13 Worker is deployed.
 
 ## Tracking
 

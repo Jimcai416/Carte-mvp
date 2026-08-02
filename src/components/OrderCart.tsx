@@ -1,12 +1,15 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
-  Modal,
-  View,
-  Text,
   FlatList,
-  StyleSheet,
+  Modal,
   Pressable,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
+import * as Brightness from "expo-brightness";
+import { useKeepAwake } from "expo-keep-awake";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Dish } from "../types";
 import { useT } from "../lib/i18n";
 import {
@@ -15,9 +18,6 @@ import {
   parseMoney,
 } from "../lib/currency";
 import { colors, fonts, radius, space } from "../theme";
-
-// The order list — Carte themed. Same public API as the original:
-// OrderLine, orderTotals(), and the <OrderCart/> props.
 
 export interface OrderLine {
   dish: Dish;
@@ -39,91 +39,316 @@ function lineKey(line: OrderLine): string {
     .join("::");
 }
 
+function serverPromptFor(menuLanguage: string): string {
+  const language = (menuLanguage || "").toLowerCase();
+  if (language.includes("traditional chinese") || language.includes("cantonese")) {
+    return "我們想點以下菜式，請幫我們確認。";
+  }
+  if (language.includes("chinese") || language.includes("mandarin")) {
+    return "我们想点以下菜品，请帮我们确认。";
+  }
+  if (language.includes("japanese")) {
+    return "以下の料理を注文したいです。ご確認ください。";
+  }
+  if (language.includes("korean")) {
+    return "아래 메뉴로 주문하겠습니다. 확인 부탁드립니다.";
+  }
+  if (language.includes("french")) {
+    return "Nous souhaiterions commander les plats suivants, s’il vous plaît.";
+  }
+  if (language.includes("italian")) {
+    return "Vorremmo ordinare i seguenti piatti, per favore.";
+  }
+  if (language.includes("spanish")) {
+    return "Nos gustaría pedir los siguientes platos, por favor.";
+  }
+  if (language.includes("thai")) {
+    return "ต้องการสั่งรายการต่อไปนี้ กรุณาช่วยยืนยันด้วยค่ะ/ครับ";
+  }
+  return "We’d like to order the following, please.";
+}
+
+function ServerOrderView({
+  lines,
+  menuLanguage,
+  onBack,
+  onClose,
+}: {
+  lines: OrderLine[];
+  menuLanguage: string;
+  onBack: () => void;
+  onClose: () => void;
+}) {
+  const t = useT();
+  const insets = useSafeAreaInsets();
+  const originalBrightness = useRef<number | null>(null);
+  const [bright, setBright] = useState(false);
+  const itemCount = lines.reduce((sum, line) => sum + line.qty, 0);
+
+  useKeepAwake("carte-server-order");
+
+  useEffect(() => {
+    return () => {
+      if (originalBrightness.current !== null) {
+        void Brightness.setBrightnessAsync(originalBrightness.current).catch(() => {});
+      }
+    };
+  }, []);
+
+  async function toggleBrightness() {
+    try {
+      if (!bright) {
+        originalBrightness.current = await Brightness.getBrightnessAsync();
+        await Brightness.setBrightnessAsync(1);
+        setBright(true);
+        return;
+      }
+
+      if (originalBrightness.current !== null) {
+        await Brightness.setBrightnessAsync(originalBrightness.current);
+      }
+      originalBrightness.current = null;
+      setBright(false);
+    } catch {
+      // Brightness is a convenience; the order must remain usable without it.
+    }
+  }
+
+  return (
+    <View
+      style={[
+        styles.serverScreen,
+        { paddingTop: insets.top + space(2), paddingBottom: insets.bottom + space(3) },
+      ]}
+    >
+      <View style={styles.serverHeader}>
+        <Pressable
+          style={styles.serverHeaderButton}
+          onPress={onBack}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel={t("orderTitle")}
+        >
+          <Text style={styles.serverBack}>‹</Text>
+        </Pressable>
+        <View style={styles.serverHeaderCopy}>
+          <Text style={styles.serverEyebrow}>CARTE · ORDER</Text>
+          <Text style={styles.serverTitle}>{t("orderTitle")}</Text>
+        </View>
+        <Pressable
+          style={[styles.serverHeaderButton, bright && styles.serverHeaderButtonActive]}
+          onPress={toggleBrightness}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel="Increase screen brightness"
+          accessibilityState={{ selected: bright }}
+        >
+          <Text style={[styles.sun, bright && styles.sunActive]}>☀</Text>
+        </Pressable>
+      </View>
+
+      <FlatList
+        data={lines}
+        keyExtractor={lineKey}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.serverList}
+        ListHeaderComponent={
+          <View style={styles.serverIntro}>
+            <Text style={styles.serverPrompt}>{serverPromptFor(menuLanguage)}</Text>
+            <View style={styles.serverMetaRow}>
+              <Text style={styles.serverMeta}>{itemCount} {t("items")}</Text>
+              <Text style={styles.serverMeta}>{menuLanguage || "MENU"}</Text>
+            </View>
+          </View>
+        }
+        renderItem={({ item, index }) => {
+          const originalCategory =
+            item.dish.original_category?.trim() || item.dish.category?.trim();
+
+          return (
+            <View style={styles.serverLine}>
+              <View style={styles.serverLineTop}>
+                <View style={styles.serverQtyBox}>
+                  <Text style={styles.serverQty}>{item.qty}</Text>
+                  <Text style={styles.serverTimes}>×</Text>
+                </View>
+                <View style={styles.serverDishCopy}>
+                  <Text style={styles.serverOriginal}>{item.dish.original_name}</Text>
+                  {item.dish.romanized ? (
+                    <Text style={styles.serverRomanized}>{item.dish.romanized}</Text>
+                  ) : null}
+                </View>
+              </View>
+
+              <View style={styles.serverDetails}>
+                <Text style={styles.serverTranslated}>{item.dish.translated_name}</Text>
+                <View style={styles.serverLineMeta}>
+                  {originalCategory ? (
+                    <Text style={styles.serverCategory}>{originalCategory}</Text>
+                  ) : (
+                    <View />
+                  )}
+                  {item.dish.price ? (
+                    <Text style={styles.serverPrice}>{item.dish.price}</Text>
+                  ) : null}
+                </View>
+              </View>
+
+              <Text style={styles.serverLineNumber}>
+                {String(index + 1).padStart(2, "0")}
+              </Text>
+            </View>
+          );
+        }}
+      />
+
+      <Pressable style={styles.backToCart} onPress={onBack} accessibilityRole="button">
+        <Text style={styles.backToCartText}>‹ {t("orderTitle")}</Text>
+      </Pressable>
+      <Pressable onPress={onClose} hitSlop={8} accessibilityRole="button">
+        <Text style={styles.serverClose}>{t("done")}</Text>
+      </Pressable>
+    </View>
+  );
+}
+
 export default function OrderCart({
   visible,
   lines,
   displayCurrency,
+  menuLanguage,
   showConverted = true,
   onAdd,
   onRemove,
   onClear,
   onClose,
+  onShowServer,
 }: {
   visible: boolean;
   lines: OrderLine[];
   displayCurrency: string;
+  menuLanguage: string;
   showConverted?: boolean;
   onAdd: (dish: Dish) => void;
   onRemove: (dish: Dish) => void;
   onClear: () => void;
   onClose: () => void;
+  onShowServer?: () => void;
 }) {
   const t = useT();
   const totals = orderTotals(lines);
+  const [serverMode, setServerMode] = useState(false);
+
+  useEffect(() => {
+    if (!visible || lines.length === 0) setServerMode(false);
+  }, [lines.length, visible]);
+
+  function openServerMode() {
+    onShowServer?.();
+    setServerMode(true);
+  }
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable style={styles.sheet} onPress={() => {}}>
-          <View style={styles.handle} />
-          <View style={styles.titleRow}>
-            <Text style={styles.title}>{t("orderTitle")}</Text>
-            <Pressable onPress={onClose} hitSlop={12}>
-              <Text style={styles.close}>✕</Text>
-            </Pressable>
-          </View>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={serverMode ? () => setServerMode(false) : onClose}
+    >
+      {serverMode ? (
+        <ServerOrderView
+          lines={lines}
+          menuLanguage={menuLanguage}
+          onBack={() => setServerMode(false)}
+          onClose={onClose}
+        />
+      ) : (
+        <Pressable style={styles.backdrop} onPress={onClose}>
+          <Pressable style={styles.sheet} onPress={() => {}}>
+            <View style={styles.handle} />
+            <View style={styles.titleRow}>
+              <Text style={styles.title}>{t("orderTitle")}</Text>
+              <Pressable onPress={onClose} hitSlop={12} accessibilityRole="button">
+                <Text style={styles.close}>✕</Text>
+              </Pressable>
+            </View>
 
-          <FlatList
-            data={lines}
-            keyExtractor={lineKey}
-            style={{ flexGrow: 0 }}
-            renderItem={({ item }) => (
-              <View style={styles.line}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.lineName} numberOfLines={1}>
-                    {item.dish.original_name}
-                  </Text>
-                  <Text style={styles.lineSub} numberOfLines={1}>
-                    {item.dish.translated_name}
-                    {item.dish.price ? `  ·  ${item.dish.price}` : ""}
-                    {showConverted && convertedPriceForDish(item.dish)
-                      ? `  ·  ${convertedPriceForDish(item.dish)}`
-                      : ""}
-                  </Text>
+            <FlatList
+              data={lines}
+              keyExtractor={lineKey}
+              style={{ flexGrow: 0 }}
+              renderItem={({ item }) => (
+                <View style={styles.line}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.lineName} numberOfLines={1}>
+                      {item.dish.original_name}
+                    </Text>
+                    <Text style={styles.lineSub} numberOfLines={1}>
+                      {item.dish.translated_name}
+                      {item.dish.price ? `  ·  ${item.dish.price}` : ""}
+                      {showConverted && convertedPriceForDish(item.dish)
+                        ? `  ·  ${convertedPriceForDish(item.dish)}`
+                        : ""}
+                    </Text>
+                  </View>
+                  <View style={styles.stepper}>
+                    <Pressable
+                      onPress={() => onRemove(item.dish)}
+                      hitSlop={8}
+                      style={styles.stepBtn}
+                      accessibilityRole="button"
+                    >
+                      <Text style={styles.stepText}>−</Text>
+                    </Pressable>
+                    <Text style={styles.qty}>{item.qty}</Text>
+                    <Pressable
+                      onPress={() => onAdd(item.dish)}
+                      hitSlop={8}
+                      style={styles.stepBtn}
+                      accessibilityRole="button"
+                    >
+                      <Text style={styles.stepText}>+</Text>
+                    </Pressable>
+                  </View>
                 </View>
-                <View style={styles.stepper}>
-                  <Pressable onPress={() => onRemove(item.dish)} hitSlop={8} style={styles.stepBtn}>
-                    <Text style={styles.stepText}>−</Text>
-                  </Pressable>
-                  <Text style={styles.qty}>{item.qty}</Text>
-                  <Pressable onPress={() => onAdd(item.dish)} hitSlop={8} style={styles.stepBtn}>
-                    <Text style={styles.stepText}>+</Text>
-                  </Pressable>
-                </View>
-              </View>
-            )}
-          />
+              )}
+            />
 
-          <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>{t("totalWord")}</Text>
-            <Text style={styles.totalValue}>
-              {totals.converted > 0
-                ? formatMoney(totals.converted, displayCurrency)
-                : "—"}
-            </Text>
-          </View>
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>{t("totalWord")}</Text>
+              <Text style={styles.totalValue}>
+                {totals.converted > 0
+                  ? formatMoney(totals.converted, displayCurrency)
+                  : "—"}
+              </Text>
+            </View>
 
-          <Pressable style={styles.clearBtn} onPress={onClear}>
-            <Text style={styles.clearText}>{t("orderClear")}</Text>
+            <View style={styles.cartActions}>
+              <Pressable style={styles.clearBtn} onPress={onClear} accessibilityRole="button">
+                <Text style={styles.clearText}>{t("orderClear")}</Text>
+              </Pressable>
+              <Pressable
+                style={styles.showServerBtn}
+                onPress={openServerMode}
+                accessibilityRole="button"
+              >
+                <Text style={styles.showServerText}>{t("showServer")}</Text>
+                <Text style={styles.showServerArrow}>›</Text>
+              </Pressable>
+            </View>
           </Pressable>
         </Pressable>
-      </Pressable>
+      )}
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },
+  backdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "flex-end",
+  },
   sheet: {
     backgroundColor: colors.surface,
     borderTopLeftRadius: radius.card + 6,
@@ -132,7 +357,7 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     padding: space(5),
     paddingBottom: space(8),
-    maxHeight: "75%",
+    maxHeight: "78%",
   },
   handle: {
     alignSelf: "center",
@@ -159,7 +384,12 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.line,
   },
   lineName: { fontFamily: fonts.bodySemibold, fontSize: 15, color: colors.text },
-  lineSub: { fontFamily: fonts.body, fontSize: 12, color: colors.muted, marginTop: 1 },
+  lineSub: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.muted,
+    marginTop: 1,
+  },
   stepper: { flexDirection: "row", alignItems: "center", gap: space(2.5) },
   stepBtn: {
     width: 30,
@@ -170,8 +400,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  stepText: { color: colors.accent, fontFamily: fonts.bodyBold, fontSize: 17, lineHeight: 20 },
-  qty: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.text, minWidth: 18, textAlign: "center" },
+  stepText: {
+    color: colors.accent,
+    fontFamily: fonts.bodyBold,
+    fontSize: 17,
+    lineHeight: 20,
+  },
+  qty: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 15,
+    color: colors.text,
+    minWidth: 18,
+    textAlign: "center",
+  },
   totalRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -179,13 +420,213 @@ const styles = StyleSheet.create({
   },
   totalLabel: { fontFamily: fonts.body, fontSize: 15, color: colors.muted },
   totalValue: { fontFamily: fonts.bodyBold, fontSize: 18, color: colors.accent },
-  clearBtn: {
+  cartActions: {
+    flexDirection: "row",
+    gap: space(2.5),
     marginTop: space(4),
+  },
+  clearBtn: {
     borderWidth: 1.5,
     borderColor: colors.lineStrong,
     borderRadius: radius.pill,
+    paddingHorizontal: space(4),
     paddingVertical: space(3),
     alignItems: "center",
+    justifyContent: "center",
   },
-  clearText: { fontFamily: fonts.body, fontSize: 14, color: colors.muted },
+  clearText: { fontFamily: fonts.body, fontSize: 13, color: colors.muted },
+  showServerBtn: {
+    flex: 1,
+    minHeight: 48,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: space(2),
+    borderRadius: radius.pill,
+    backgroundColor: colors.primaryAction,
+    paddingHorizontal: space(4),
+  },
+  showServerText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 14,
+    color: colors.onAccent,
+  },
+  showServerArrow: { fontSize: 22, lineHeight: 24, color: colors.onAccent },
+
+  serverScreen: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    paddingHorizontal: space(5),
+  },
+  serverHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    minHeight: 58,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+  },
+  serverHeaderButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surfaceRaised,
+  },
+  serverHeaderButtonActive: {
+    borderColor: colors.accent,
+    backgroundColor: colors.accentWash,
+  },
+  serverBack: { color: colors.text, fontSize: 30, lineHeight: 31, marginTop: -2 },
+  sun: { color: colors.muted, fontSize: 18 },
+  sunActive: { color: colors.accentStrong },
+  serverHeaderCopy: { flex: 1, alignItems: "center" },
+  serverEyebrow: {
+    fontFamily: fonts.mono,
+    fontSize: 8,
+    letterSpacing: 1.5,
+    color: colors.accentStrong,
+  },
+  serverTitle: {
+    fontFamily: fonts.display,
+    fontSize: 23,
+    lineHeight: 25,
+    color: colors.text,
+  },
+  serverList: { paddingTop: space(4), paddingBottom: space(3) },
+  serverIntro: {
+    paddingHorizontal: space(1),
+    paddingBottom: space(4),
+  },
+  serverPrompt: {
+    fontFamily: fonts.native,
+    fontSize: 24,
+    lineHeight: 32,
+    fontWeight: "600",
+    color: colors.text,
+  },
+  serverMetaRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: space(2),
+  },
+  serverMeta: {
+    maxWidth: "70%",
+    fontFamily: fonts.mono,
+    fontSize: 8,
+    letterSpacing: 1.1,
+    color: colors.muted,
+    textTransform: "uppercase",
+  },
+  serverLine: {
+    position: "relative",
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: radius.card,
+    backgroundColor: colors.paper,
+    padding: space(4),
+    marginBottom: space(3),
+  },
+  serverLineTop: { flexDirection: "row", alignItems: "flex-start", gap: space(3) },
+  serverQtyBox: {
+    width: 52,
+    height: 52,
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "center",
+    borderRadius: 15,
+    backgroundColor: colors.primaryAction,
+    paddingTop: space(1.5),
+  },
+  serverQty: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 25,
+    color: colors.onAccent,
+  },
+  serverTimes: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 13,
+    color: colors.onAccentMuted,
+    marginLeft: 1,
+  },
+  serverDishCopy: { flex: 1, paddingRight: space(3) },
+  serverOriginal: {
+    fontFamily: fonts.native,
+    fontSize: 27,
+    lineHeight: 35,
+    fontWeight: "600",
+    color: colors.ink,
+  },
+  serverRomanized: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    lineHeight: 17,
+    fontStyle: "italic",
+    color: colors.muted,
+    marginTop: 1,
+  },
+  serverDetails: {
+    marginLeft: 52 + space(3),
+    paddingTop: space(2),
+  },
+  serverTranslated: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    lineHeight: 18,
+    color: colors.muted,
+  },
+  serverLineMeta: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    gap: space(3),
+    marginTop: space(2.5),
+  },
+  serverCategory: {
+    flexShrink: 1,
+    overflow: "hidden",
+    borderRadius: radius.pill,
+    backgroundColor: colors.surfaceRaised,
+    paddingHorizontal: space(2.5),
+    paddingVertical: space(1),
+    fontFamily: fonts.native,
+    fontSize: 11,
+    color: colors.muted,
+  },
+  serverPrice: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 16,
+    color: colors.ink,
+  },
+  serverLineNumber: {
+    position: "absolute",
+    right: space(2),
+    top: space(1.5),
+    fontFamily: fonts.mono,
+    fontSize: 8,
+    letterSpacing: 1,
+    color: colors.paperLine,
+  },
+  backToCart: {
+    minHeight: 50,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: radius.pill,
+    backgroundColor: colors.text,
+  },
+  backToCartText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 14,
+    color: colors.surface,
+  },
+  serverClose: {
+    alignSelf: "center",
+    paddingTop: space(2.5),
+    fontFamily: fonts.bodyMedium,
+    fontSize: 12,
+    color: colors.muted,
+  },
 });

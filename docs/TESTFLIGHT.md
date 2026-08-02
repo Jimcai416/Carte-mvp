@@ -1,4 +1,4 @@
-# Carte 0.5.12 TestFlight handoff
+# Carte 0.5.13 TestFlight handoff
 
 ## Build identity
 
@@ -6,7 +6,7 @@
 - Bundle identifier: `com.playbook.dishlens`
 - EAS project ID: `859efdc3-4c16-448c-9e6a-fe98349513c5`
 - Build profile: `production`
-- Version: `0.5.12`
+- Version: `0.5.13`
 - Build number: remotely managed and auto-incremented by EAS
 
 ## One-time production configuration
@@ -62,12 +62,15 @@ Please test Carte in a real restaurant:
 1. Scan one page of a menu in a language you do not read.
 2. Check whether every visible dish, section and price is recognised.
 3. Open several dish details and verify descriptions and dietary flags.
-4. Add dishes to Your order and open the order dock.
-5. Return later and reopen the menu from Recent menus.
+4. Add several dishes to Your order and adjust their quantities.
+5. Tap Show server. Confirm that quantities, original dish names, original
+   menu sections and printed prices are easy for restaurant staff to read.
+6. Try the brightness button, return to the editable order, then reopen it.
+7. Return later and reopen the menu from Recent menus.
 
-Please report slow scans, missing dishes, wrong prices/currency, crashes, or
-layouts that overlap the floating Liquid Glass header/dock. Always confirm
-ingredients and allergens with restaurant staff.
+Please report slow scans, altered original dish names, missing dishes, wrong
+prices/currency, crashes, or layouts that overlap the floating Liquid Glass
+header/dock. Always confirm ingredients and allergens with restaurant staff.
 ```
 
 ## Beta App Review information still requiring owner input

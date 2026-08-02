@@ -30,6 +30,7 @@ const ANALYTICS_EVENTS = new Set([
   "dish_detail_opened",
   "order_item_added",
   "order_opened",
+  "order_server_view_opened",
   "history_menu_reopened",
   "feedback_submitted",
 ]);
@@ -62,6 +63,8 @@ Rules:
 - Extract EVERY food and drink item printed on the menu — completeness is critical. If the menu has 60 dishes, return 60 dishes. Never summarise, sample, or skip sections.
 - NEVER output section or category headers (e.g. "Antipasti", "Carne e Pollame", "Desserts", "Sides") as dishes. A dish is something a diner can order, usually with its own price. If you catch yourself writing "section header" in a description, omit that item entirely.
 - Preserve the menu structure: put the translated section heading for every item in "category" (e.g. "Starters", "Noodles", "Desserts"). Keep the same category wording for every item in that printed section. If no heading is visible, use "Menu".
+- Copy the section heading exactly as printed into "original_category". Never translate, correct, expand, or normalise it. If no heading is visible, use null.
+- Copy "original_name" exactly as printed. Never translate, correct spelling, expand abbreviations, or replace it with a more familiar dish name.
 - Write "translated_name", "description" and "worth_it" in ${lang}. If the menu is already in ${lang}, still fill these fields (translated_name may match the original).
 - Write "category" and "ingredients" in ${lang}. "ingredients" should contain only the main ingredients you can reasonably infer; use [] when unclear.
 - Descriptions: ONE short sentence (max 14 words) saying what the dish actually IS. Never marketing language.
@@ -84,6 +87,7 @@ JSON schema:
   "dishes": [
     {
       "category": string,
+      "original_category": string | null,
       "original_name": string,
       "romanized": string | null,
       "translated_name": string,
@@ -121,7 +125,7 @@ async function handleRequest(request, env) {
 
   const url = new URL(request.url);
   if (request.method === "GET" && url.pathname === "/health") {
-    return json({ ok: true, service: "carte-api", version: "0.5.12" }, 200, cors);
+    return json({ ok: true, service: "carte-api", version: "0.5.13" }, 200, cors);
   }
   if (request.method === "GET" && url.pathname === "/privacy") {
     return html(privacyPage(env));

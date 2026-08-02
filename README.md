@@ -2,7 +2,7 @@
   <img src="./assets/icon.png" alt="Carte app icon" width="128" />
   <h1>Carte</h1>
   <p>Point Carte at any restaurant menu. See every dish in your language.</p>
-  <p><strong>Version 0.5.12 · Beta Candidate</strong></p>
+  <p><strong>Version 0.5.13 · Bilingual Order Handoff</strong></p>
 </div>
 
 Carte turns a photo of a restaurant menu into a clear, visual guide. It
@@ -21,7 +21,8 @@ show the server.
 - Dish explanations, ingredients, prices and ordering advice
 - Allergen and dietary guidance with a visible confirmation warning
 - Persistent display-currency selection with approximate converted prices
-- Order builder with a converted total and server-facing order cards
+- Order builder with a converted total and a full-screen server handoff mode
+- Server view prioritising quantity, original dish name, printed section and price
 - Nine interface languages
 - Local history for the ten most recent menus
 - Liquid Glass navigation on supported iOS versions, with BlurView fallbacks
@@ -31,7 +32,7 @@ is not reachable and does not limit the beta.
 
 ## Beta safeguards
 
-Version 0.5.12 includes the infrastructure required for controlled testing:
+Version 0.5.13 retains the infrastructure required for controlled testing:
 
 - Privacy-safe, first-party product analytics through Cloudflare Analytics Engine
 - Sentry crash monitoring with PII, screenshots and menu content disabled

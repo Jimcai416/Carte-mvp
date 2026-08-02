@@ -2,7 +2,7 @@
   "expo": {
     "name": "Carte",
     "slug": "dishlens",
-    "version": "0.5.12",
+    "version": "0.5.13",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
