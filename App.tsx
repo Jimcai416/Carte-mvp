@@ -147,7 +147,10 @@ function App() {
   return (
     <SafeAreaProvider>
       <View style={[styles.canvas, Platform.OS === "web" && styles.webCanvas]}>
-        <View style={[styles.root, Platform.OS === "web" && styles.webRoot]}>
+        <View
+          nativeID={Platform.OS === "web" ? "tavue-app-shell" : undefined}
+          style={[styles.root, Platform.OS === "web" && styles.webRoot]}
+        >
           <StatusBar
             barStyle="dark-content"
             backgroundColor="transparent"
@@ -184,6 +187,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   webCanvas: {
+    width: "100%",
     backgroundColor: "#EDE6DF",
     alignItems: "center",
   },
