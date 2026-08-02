@@ -118,6 +118,12 @@ export default function ScanScreen({
 }) {
   const t = useT();
   const insets = useSafeAreaInsets();
+  const usesTallHeroGlyphs = [
+    "Chinese (Simplified)",
+    "Chinese (Traditional)",
+    "Japanese",
+    "Korean",
+  ].includes(getLanguage());
   const [busy, setBusy] = useState(false);
   const [loadingLine, setLoadingLine] = useState(0);
   const [previewUri, setPreviewUri] = useState<string | null>(null);
@@ -341,7 +347,11 @@ export default function ScanScreen({
                 <Text style={styles.mono}>№ 0042</Text>
               </View>
 
-              <Text style={styles.heroTitle}>{t("heroTitle")}</Text>
+              <Text
+                style={[styles.heroTitle, usesTallHeroGlyphs && styles.heroTitleTallGlyphs]}
+              >
+                {t("heroTitle")}
+              </Text>
               <Text style={styles.ticketDesc}>{t("ticketDesc")}</Text>
 
               <View style={styles.routeRow}>
@@ -728,6 +738,10 @@ const styles = StyleSheet.create({
     lineHeight: 41,
     color: colors.text,
     maxWidth: 300,
+  },
+  heroTitleTallGlyphs: {
+    lineHeight: 49,
+    paddingTop: 3,
   },
   ticketDesc: {
     fontFamily: fonts.body,

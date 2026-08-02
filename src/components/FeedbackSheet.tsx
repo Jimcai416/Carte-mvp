@@ -17,7 +17,7 @@ import { captureOperationalError } from "../lib/monitoring";
 import { useT } from "../lib/i18n";
 import { colors, fonts, radius, space } from "../theme";
 
-const APP_VERSION = "0.5.12";
+const APP_VERSION = "0.5.13";
 
 export default function FeedbackSheet({
   visible,

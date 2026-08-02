@@ -2,7 +2,7 @@ import { Platform } from "react-native";
 import { API_URL } from "./api";
 import { getClientId } from "./identity";
 
-const APP_VERSION = "0.5.12";
+const APP_VERSION = "0.5.13";
 
 export type AnalyticsEventName =
   | "app_opened"
@@ -12,6 +12,7 @@ export type AnalyticsEventName =
   | "dish_detail_opened"
   | "order_item_added"
   | "order_opened"
+  | "order_server_view_opened"
   | "history_menu_reopened"
   | "feedback_submitted";
 

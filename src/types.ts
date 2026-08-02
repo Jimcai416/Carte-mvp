@@ -13,7 +13,8 @@ export type DishFlag =
   | "house_special";
 
 export interface Dish {
-  category?: string | null;    // section printed on the menu, e.g. "Starters"
+  category?: string | null;    // translated section heading used by the app
+  original_category?: string | null; // section exactly as printed, for server handoff
   original_name: string;       // as printed on the menu, original script
   romanized: string | null;    // e.g. "wan tan lo mein"
   translated_name: string;     // target app language

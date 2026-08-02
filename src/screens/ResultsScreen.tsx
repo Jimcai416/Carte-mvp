@@ -379,6 +379,7 @@ export default function ResultsScreen({
         visible={showCart}
         lines={order}
         displayCurrency={displayCurrency}
+        menuLanguage={result.menu_language}
         showConverted={showConverted}
         onAdd={(dish) => addToOrder(dish, "detail")}
         onRemove={removeFromOrder}
@@ -387,6 +388,7 @@ export default function ResultsScreen({
           setShowCart(false);
         }}
         onClose={() => setShowCart(false)}
+        onShowServer={() => void track("order_server_view_opened")}
       />
 
       <OrderSheet
