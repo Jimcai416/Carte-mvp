@@ -23,7 +23,8 @@ export async function scanMenu(
   mediaType: string,
   targetLanguage: string = "English",
   targetCurrency: CurrencyCode = "GBP",
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  retryBase64?: string
 ): Promise<ScanResult> {
   const clientId = await getClientId();
   const res = await fetch(`${API_URL}/scan`, {
@@ -36,6 +37,8 @@ export async function scanMenu(
     body: JSON.stringify({
       imageBase64: base64,
       mediaType,
+      retryImageBase64: retryBase64,
+      retryMediaType: retryBase64 ? "image/jpeg" : undefined,
       targetLanguage,
       targetCurrency,
     }),
@@ -52,14 +55,14 @@ export async function scanMenu(
           ? "Too many scans at once. Wait a minute and try again."
           : "You've reached today's scan limit. Please try again tomorrow."
         : payload?.error ||
-          "The scanner couldn't read this menu. Try a closer, sharper photo.";
+          "We couldn't read this menu. Keep one page in frame, remove dark borders, and try again.";
     throw new ScanError(message, code, res.status);
   }
 
   const data = (await res.json()) as ScanResult;
   if (!data || !Array.isArray(data.dishes)) {
     throw new ScanError(
-      "The scanner couldn't read this menu. Try a closer, sharper photo.",
+      "We couldn't read this menu. Keep one page in frame, remove dark borders, and try again.",
       "invalid_scan_response"
     );
   }

@@ -277,7 +277,7 @@ async function receiveFeedback(request, env, clientId, cors) {
 
 async function scan(request, env, clientId, cors) {
   const startedAt = Date.now();
-  if (bodyTooLarge(request, MAX_IMAGE_BASE64_CHARS + 100_000)) {
+  if (bodyTooLarge(request, MAX_IMAGE_BASE64_CHARS * 2 + 100_000)) {
     return json(
       { error: "Image is too large", code: "image_too_large" },
       413,
@@ -306,7 +306,14 @@ async function scan(request, env, clientId, cors) {
   } catch {
     return json({ error: "Invalid JSON body", code: "invalid_json" }, 400, cors);
   }
-  const { imageBase64, mediaType, targetLanguage, targetCurrency } = body || {};
+  const {
+    imageBase64,
+    mediaType,
+    retryImageBase64,
+    retryMediaType,
+    targetLanguage,
+    targetCurrency,
+  } = body || {};
   if (!imageBase64) {
     return json(
       { error: "imageBase64 required", code: "image_required" },
@@ -316,7 +323,10 @@ async function scan(request, env, clientId, cors) {
   }
   if (
     typeof imageBase64 !== "string" ||
-    imageBase64.length > MAX_IMAGE_BASE64_CHARS
+    imageBase64.length > MAX_IMAGE_BASE64_CHARS ||
+    (retryImageBase64 &&
+      (typeof retryImageBase64 !== "string" ||
+        retryImageBase64.length > MAX_IMAGE_BASE64_CHARS))
   ) {
     return json(
       { error: "Image is too large", code: "image_too_large" },
@@ -327,6 +337,16 @@ async function scan(request, env, clientId, cors) {
   if (!/^image\/(jpeg|jpg|png|webp|heic|heif)$/i.test(mediaType || "image/jpeg")) {
     return json(
       { error: "Unsupported image type", code: "unsupported_image" },
+      415,
+      cors
+    );
+  }
+  if (
+    retryImageBase64 &&
+    !/^image\/(jpeg|jpg|png|webp)$/i.test(retryMediaType || "image/jpeg")
+  ) {
+    return json(
+      { error: "Unsupported retry image type", code: "unsupported_image" },
       415,
       cors
     );
@@ -373,7 +393,37 @@ async function scan(request, env, clientId, cors) {
       lang,
       currency
     );
-  } catch {
+  } catch (firstError) {
+    try {
+      parsed = await parseMenu(
+        env,
+        retryImageBase64 || imageBase64,
+        retryImageBase64
+          ? retryMediaType || "image/jpeg"
+          : mediaType || "image/jpeg",
+        lang,
+        currency,
+        retryImageBase64
+          ? "This is a focused crop of the main menu page. Ignore any remaining border and extract every visible dish."
+          : "Retry carefully. Read the menu and return complete valid JSON only."
+      );
+      console.info(
+        JSON.stringify({ type: "scan_retry_succeeded", durationMs: Date.now() - startedAt })
+      );
+    } catch (retryError) {
+      parsed = null;
+      console.error(
+        JSON.stringify({
+          type: "scan_retry_failed",
+          firstError: errorCode(firstError),
+          retryError: errorCode(retryError),
+          durationMs: Date.now() - startedAt,
+        })
+      );
+    }
+  }
+
+  if (!parsed) {
     const durationMs = Date.now() - startedAt;
     console.error(
       JSON.stringify({
@@ -388,7 +438,7 @@ async function scan(request, env, clientId, cors) {
     });
     return json(
       {
-        error: "The menu service could not read this image. Please try again.",
+        error: "We couldn't read this menu. Keep one page in frame, remove dark borders, and try again.",
         code: "menu_parsing_failed",
       },
       502,
@@ -427,7 +477,8 @@ async function parseMenu(
   imageBase64,
   mediaType,
   lang = "English",
-  targetCurrency = "GBP"
+  targetCurrency = "GBP",
+  instruction = "Read this menu and return the JSON."
 ) {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -448,7 +499,7 @@ async function parseMenu(
               type: "image",
               source: { type: "base64", media_type: mediaType, data: imageBase64 },
             },
-            { type: "text", text: "Read this menu and return the JSON." },
+            { type: "text", text: instruction },
           ],
         },
       ],
@@ -476,6 +527,14 @@ async function parseMenu(
     if (match) return JSON.parse(match[0]);
     throw new Error("Model returned unparseable output");
   }
+}
+
+function errorCode(error) {
+  const message = error instanceof Error ? error.message : String(error || "unknown");
+  const status = message.match(/Claude API (\d{3})/)?.[1];
+  if (status) return `anthropic_${status}`;
+  if (/parse|json/i.test(message)) return "invalid_model_json";
+  return "upstream_failure";
 }
 
 // Cache key: normalised dish identity, shared across all users forever.
