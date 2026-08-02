@@ -24,10 +24,12 @@ html = html.replace(
         min-height: 0 !important;
         max-height: var(--tavue-viewport-height, 100dvh);
         width: 100%;
+        max-width: 100%;
         background-color: #F7F3EE;
       }
       html, body {
         margin: 0;
+        overflow-x: hidden;
         overscroll-behavior-y: none;
       }
       body {
@@ -38,10 +40,27 @@ html = html.replace(
         max-height: var(--tavue-viewport-height, 100dvh);
       }
       body > div:not(#root) [role="dialog"] {
-        top: 0 !important;
+        top: var(--tavue-viewport-offset-top, 0px) !important;
         bottom: auto !important;
+        left: var(--tavue-viewport-offset-left, 0px) !important;
+        right: auto !important;
         height: var(--tavue-viewport-height, 100dvh) !important;
         max-height: var(--tavue-viewport-height, 100dvh);
+        width: var(--tavue-viewport-width, 100vw) !important;
+        max-width: var(--tavue-viewport-width, 100vw);
+        overflow-x: hidden;
+      }
+      #tavue-order-backdrop {
+        min-width: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box;
+      }
+      #tavue-order-sheet {
+        min-width: 0 !important;
+        width: 100% !important;
+        max-width: min(640px, 100%) !important;
+        box-sizing: border-box;
       }
       @media (hover: none) and (pointer: coarse) {
         #tavue-app-shell {
@@ -59,9 +78,17 @@ html = html.replace(
           frame = 0;
           const viewport = window.visualViewport;
           const height = viewport?.height || window.innerHeight;
+          const width = viewport?.width || document.documentElement.clientWidth || window.innerWidth;
+          const offsetTop = viewport?.offsetTop || 0;
+          const offsetLeft = viewport?.offsetLeft || 0;
           if (height > 0) {
             root.style.setProperty("--tavue-viewport-height", Math.round(height) + "px");
           }
+          if (width > 0) {
+            root.style.setProperty("--tavue-viewport-width", Math.round(width) + "px");
+          }
+          root.style.setProperty("--tavue-viewport-offset-top", Math.round(offsetTop) + "px");
+          root.style.setProperty("--tavue-viewport-offset-left", Math.round(offsetLeft) + "px");
         };
 
         const scheduleViewport = () => {
@@ -69,14 +96,29 @@ html = html.replace(
           frame = window.requestAnimationFrame(applyViewport);
         };
 
+        const resetHorizontalScroll = () => {
+          document.documentElement.scrollLeft = 0;
+          document.body.scrollLeft = 0;
+        };
+
         applyViewport();
+        resetHorizontalScroll();
         window.addEventListener("resize", scheduleViewport, { passive: true });
-        window.addEventListener("orientationchange", scheduleViewport, { passive: true });
-        window.addEventListener("pageshow", scheduleViewport, { passive: true });
+        window.addEventListener("orientationchange", () => {
+          resetHorizontalScroll();
+          scheduleViewport();
+        }, { passive: true });
+        window.addEventListener("pageshow", () => {
+          resetHorizontalScroll();
+          scheduleViewport();
+        }, { passive: true });
         window.visualViewport?.addEventListener("resize", scheduleViewport, { passive: true });
         window.visualViewport?.addEventListener("scroll", scheduleViewport, { passive: true });
         document.addEventListener("visibilitychange", () => {
-          if (!document.hidden) scheduleViewport();
+          if (!document.hidden) {
+            resetHorizontalScroll();
+            scheduleViewport();
+          }
         });
       })();
     </script>

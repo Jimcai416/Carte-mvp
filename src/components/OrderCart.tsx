@@ -320,8 +320,16 @@ export default function OrderCart({
           onClose={onClose}
         />
       ) : (
-        <Pressable style={styles.backdrop} onPress={onClose}>
-          <Pressable style={styles.sheet} onPress={() => {}}>
+        <Pressable
+          nativeID={Platform.OS === "web" ? "tavue-order-backdrop" : undefined}
+          style={[styles.backdrop, Platform.OS === "web" && styles.webBackdrop]}
+          onPress={onClose}
+        >
+          <Pressable
+            nativeID={Platform.OS === "web" ? "tavue-order-sheet" : undefined}
+            style={[styles.sheet, Platform.OS === "web" && styles.webSheet]}
+            onPress={() => {}}
+          >
             <View style={styles.handle} />
             <View style={styles.titleRow}>
               <Text style={styles.title}>{t("orderTitle")}</Text>
@@ -336,7 +344,7 @@ export default function OrderCart({
               style={{ flexGrow: 0 }}
               renderItem={({ item }) => (
                 <View style={styles.line}>
-                  <View style={{ flex: 1 }}>
+                  <View style={styles.lineCopy}>
                     <Text style={styles.lineName} numberOfLines={1}>
                       {item.dish.original_name}
                     </Text>
@@ -406,6 +414,12 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.6)",
     justifyContent: "flex-end",
   },
+  webBackdrop: {
+    width: "100%",
+    maxWidth: "100%",
+    alignItems: "center",
+    overflow: "hidden",
+  },
   sheet: {
     backgroundColor: colors.surface,
     borderTopLeftRadius: radius.card + 6,
@@ -415,6 +429,11 @@ const styles = StyleSheet.create({
     padding: space(5),
     paddingBottom: space(8),
     maxHeight: "78%",
+  },
+  webSheet: {
+    width: "100%",
+    maxWidth: 640,
+    alignSelf: "center",
   },
   handle: {
     alignSelf: "center",
@@ -440,6 +459,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
   },
+  lineCopy: { flex: 1, minWidth: 0 },
   lineName: { fontFamily: fonts.bodySemibold, fontSize: 15, color: colors.text },
   lineSub: {
     fontFamily: fonts.body,
@@ -447,7 +467,12 @@ const styles = StyleSheet.create({
     color: colors.muted,
     marginTop: 1,
   },
-  stepper: { flexDirection: "row", alignItems: "center", gap: space(2.5) },
+  stepper: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexShrink: 0,
+    gap: space(2.5),
+  },
   stepBtn: {
     width: 30,
     height: 30,
