@@ -93,17 +93,20 @@ function App() {
 export default withMonitoring(App);
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.background },
+  root: {
+    flex: 1,
+    width: "100%",
+    backgroundColor: colors.background,
+  },
   canvas: {
     flex: 1,
+    backgroundColor: colors.background,
+  },
+  webCanvas: {
     backgroundColor: "#EDE6DF",
     alignItems: "center",
   },
-  webCanvas: {
-    backgroundColor: colors.background,
-  },
   webRoot: {
-    width: "100%",
     maxWidth: 640,
     shadowColor: "#50352F",
     shadowOpacity: 0.12,
