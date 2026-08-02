@@ -278,7 +278,7 @@ export default function ScanScreen({
         ]}
       >
         <View style={styles.loadingTop}>
-          <Text style={styles.wordmark}>Carte</Text>
+          <Text style={styles.wordmark}>Tavue</Text>
           <Pressable onPress={cancelScan} hitSlop={12}>
             <Text style={styles.cancelScan}>{t("cancelScan")}</Text>
           </Pressable>
@@ -519,7 +519,7 @@ export default function ScanScreen({
         ]}
       >
         <View>
-          <Text style={styles.wordmark}>Carte</Text>
+          <Text style={styles.wordmark}>Tavue</Text>
           <Text style={styles.wordmarkSub}>MENU, MADE CLEAR</Text>
         </View>
         <View style={styles.topControls}>
@@ -568,7 +568,7 @@ export default function ScanScreen({
         <Pressable style={styles.modalBackdrop} onPress={() => setShowLangPicker(false)}>
           <Pressable style={styles.modalSheet} onPress={() => {}}>
             <View style={styles.modalHandle} />
-            <Text style={styles.modalEyebrow}>CARTE</Text>
+            <Text style={styles.modalEyebrow}>TAVUE</Text>
             <Text style={styles.modalTitle}>{t("langTitle")}</Text>
             <FlatList
               data={LANGUAGES}
@@ -611,7 +611,7 @@ export default function ScanScreen({
         >
           <Pressable style={styles.modalSheet} onPress={() => {}}>
             <View style={styles.modalHandle} />
-            <Text style={styles.modalEyebrow}>CARTE</Text>
+            <Text style={styles.modalEyebrow}>TAVUE</Text>
             <Text style={styles.modalTitle}>{t("currencyTitle")}</Text>
             <Text style={styles.modalSub}>{t("currencySub")}</Text>
             <FlatList
@@ -791,8 +791,10 @@ const styles = StyleSheet.create({
     maxWidth: 300,
   },
   heroTitleTallGlyphs: {
-    lineHeight: 49,
-    paddingTop: 3,
+    fontFamily: fonts.native,
+    fontWeight: "600",
+    lineHeight: 52,
+    paddingTop: 6,
   },
   ticketDesc: {
     fontFamily: fonts.body,

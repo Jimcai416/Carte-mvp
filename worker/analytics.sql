@@ -1,4 +1,4 @@
--- Carte beta event volume and unique installations, last 7 days.
+-- Tavue beta event volume and unique installations, last 7 days.
 SELECT
   blob1 AS event,
   SUM(_sample_interval) AS event_count,

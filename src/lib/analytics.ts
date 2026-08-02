@@ -1,8 +1,7 @@
 import { Platform } from "react-native";
 import { API_URL } from "./api";
 import { getClientId } from "./identity";
-
-const APP_VERSION = "0.7.0";
+import { API_CLIENT_HEADER, APP_VERSION } from "../config";
 
 export type AnalyticsEventName =
   | "app_opened"
@@ -40,7 +39,7 @@ export async function track(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-carte-client": clientId,
+        [API_CLIENT_HEADER]: clientId,
       },
       body: JSON.stringify({
         name,

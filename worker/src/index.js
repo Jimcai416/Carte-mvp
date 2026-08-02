@@ -1,4 +1,4 @@
-// Carte API — Cloudflare Worker
+// Tavue API — Cloudflare Worker
 //
 // POST /scan  { imageBase64, mediaType }  →  ScanResult JSON
 //
@@ -57,7 +57,7 @@ const SUPPORTED_CURRENCIES = new Set([
   "CHF",
 ]);
 
-const systemPrompt = (lang, targetCurrency) => `You are Carte, an expert menu reader for travellers. You read restaurant menu photos in any language and explain every dish plainly to a ${lang} speaker.
+const systemPrompt = (lang, targetCurrency) => `You are Tavue, an expert menu reader for travellers. You read restaurant menu photos in any language and explain every dish plainly to a ${lang} speaker.
 
 Rules:
 - Extract EVERY food and drink item printed on the menu — completeness is critical. If the menu has 60 dishes, return 60 dishes. Never summarise, sample, or skip sections.
@@ -71,7 +71,7 @@ Rules:
 - For wine, sake, beer, and spirits lists: the description should give grape/style/region and a 2-3 word flavour profile (e.g. "Tuscan Sangiovese — bold, cherry, dry"). "worth_it" can suggest what it pairs with.
 - "worth_it" is one short line (max 10 words) of honest ordering advice. Use null when you have nothing useful — most dishes should be null; reserve it for standouts, classics, and traps.
 - For prices: copy exactly as printed into "price". Guess the menu's original currency from language/context into "currency" (ISO code) at the top level.
-- Convert every printed price to GBP using a reasonable approximate exchange rate and put it in "price_gbp", formatted like "£4.80". This keeps older Carte clients compatible.
+- Convert every printed price to GBP using a reasonable approximate exchange rate and put it in "price_gbp", formatted like "£4.80". This keeps earlier beta builds compatible.
 - Also convert every printed price to ${targetCurrency} using a reasonable approximate exchange rate and put it in "converted_price", formatted with the correct currency symbol or ISO code. Set top-level "display_currency" to exactly "${targetCurrency}".
 - If no price is printed, use null for "price", "price_gbp" and "converted_price".
 - "image_query" must ALWAYS be a short English search query that returns photos of this exact dish, e.g. "wonton lo mein noodles" — English regardless of the target language.
@@ -125,7 +125,7 @@ async function handleRequest(request, env) {
 
   const url = new URL(request.url);
   if (request.method === "GET" && url.pathname === "/health") {
-    return json({ ok: true, service: "carte-api", version: "0.6.0" }, 200, cors);
+    return json({ ok: true, service: "tavue-api", version: "0.8.0" }, 200, cors);
   }
   if (request.method === "GET" && url.pathname === "/privacy") {
     return html(privacyPage(env));
@@ -582,7 +582,8 @@ function corsHeaders() {
   return {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, x-carte-client",
+    "Access-Control-Allow-Headers":
+      "Content-Type, x-tavue-client, x-carte-client",
   };
 }
 
@@ -592,7 +593,11 @@ function bodyTooLarge(request, maxBytes) {
 }
 
 function readClientId(request) {
-  const value = (request.headers.get("x-carte-client") || "").trim();
+  const value = (
+    request.headers.get("x-tavue-client") ||
+    request.headers.get("x-carte-client") ||
+    ""
+  ).trim();
   return /^[A-Za-z0-9_-]{12,96}$/.test(value) ? value : "";
 }
 
@@ -680,7 +685,7 @@ function pageTemplate(title, body) {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>${escapeHtml(title)} · Carte</title>
+  <title>${escapeHtml(title)} · Tavue</title>
   <style>
     :root{color-scheme:light;--ink:#312523;--muted:#756763;--paper:#fffaf3;--line:#eadfd7;--accent:#b9513e}
     *{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.65 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -692,7 +697,7 @@ function pageTemplate(title, body) {
     p,li{color:var(--muted)}a{color:var(--accent)}.meta{font-size:14px}
   </style>
 </head>
-<body><main><header><div class="brand">CARTE</div><h1>${escapeHtml(
+<body><main><header><div class="brand">TAVUE</div><h1>${escapeHtml(
     title
   )}</h1></header>${body}</main></body></html>`;
 }
@@ -707,27 +712,27 @@ function privacyPage(env) {
   return pageTemplate(
     "Privacy Policy",
     `
-<p class="meta">Effective 26 July 2026 · Carte beta</p>
-<p>Carte helps people understand restaurant menus. This policy explains the limited data used to provide and improve the beta.</p>
+<p class="meta">Effective 2 August 2026 · Tavue beta</p>
+<p>Tavue helps people understand restaurant menus. This policy explains the limited data used to provide and improve the beta.</p>
 
 <h2>Menu scans</h2>
-<p>When you choose to scan, the menu photo is sent securely to Carte’s Cloudflare-hosted service and then to Anthropic’s commercial API for menu recognition and translation. Carte does not save the menu photo in its own storage. Anthropic normally deletes API inputs and outputs within 30 days, subject to limited safety, legal, and contractual exceptions.</p>
-<p>The resulting menu is returned to your device. Recent-menu history is stored locally on your device. To find representative dish images, Carte may send short food-name search queries—not the menu photo or your identifier—to Brave Search or Google Programmable Search.</p>
+<p>When you choose to scan, the menu photo is sent securely to Tavue’s Cloudflare-hosted service and then to Anthropic’s commercial API for menu recognition and translation. Tavue does not save the menu photo in its own storage. Anthropic normally deletes API inputs and outputs within 30 days, subject to limited safety, legal, and contractual exceptions.</p>
+<p>The resulting menu is returned to your device. Recent-menu history is stored locally on your device. To find representative dish images, Tavue may send short food-name search queries—not the menu photo or your identifier—to Brave Search or Google Programmable Search.</p>
 
 <h2>Security and beta analytics</h2>
-<p>Carte creates a random installation identifier for abuse prevention, daily scan limits, and first-party beta analytics. Analytics contain only approved event names such as scan started/completed, duration, dish count, detail opened, order added, and history reopened. They do not contain menu photos, menu text, dish names, prices, free-form content, advertising identifiers, or precise location. The identifier is irreversibly hashed before analytics storage. Cloudflare Analytics Engine retains these beta events for three months.</p>
+<p>Tavue creates a random installation identifier for abuse prevention, daily scan limits, and first-party beta analytics. Analytics contain only approved event names such as scan started/completed, duration, dish count, detail opened, order added, and history reopened. They do not contain menu photos, menu text, dish names, prices, free-form content, advertising identifiers, or precise location. The identifier is irreversibly hashed before analytics storage. Cloudflare Analytics Engine retains these beta events for three months.</p>
 
 <h2>Diagnostics and feedback</h2>
-<p>If crash monitoring is enabled, Sentry may receive crash and diagnostic information such as app version, platform, stack trace, and an error category. Carte disables default personal information, screenshots, view hierarchy, and request-body collection. Optional feedback contains the message you type plus platform and app version, and is automatically deleted after 180 days.</p>
+<p>If crash monitoring is enabled, Sentry may receive crash and diagnostic information such as app version, platform, stack trace, and an error category. Tavue disables default personal information, screenshots, view hierarchy, and request-body collection. Optional feedback contains the message you type plus platform and app version, and is automatically deleted after 180 days.</p>
 
 <h2>Sharing, advertising, and tracking</h2>
-<p>Carte does not sell personal data, serve targeted advertising, or track users across other companies’ apps and websites. Service providers process data only to operate Carte: Cloudflare for hosting and analytics, Anthropic for AI processing, Sentry for diagnostics when configured, and Brave or Google for dish-image search.</p>
+<p>Tavue does not sell personal data, serve targeted advertising, or track users across other companies’ apps and websites. Service providers process data only to operate Tavue: Cloudflare for hosting and analytics, Anthropic for AI processing, Sentry for diagnostics when configured, and Brave or Google for dish-image search.</p>
 
 <h2>Your choices and rights</h2>
-<p>You can decline AI processing and continue using any menus already saved on your device. Removing Carte deletes its local history and random identifier. UK and EEA users may request access, correction, deletion, restriction, or objection where applicable.</p>
+<p>You can decline AI processing and continue using any menus already saved on your device. Removing Tavue deletes its local history and random identifier. UK and EEA users may request access, correction, deletion, restriction, or objection where applicable.</p>
 
 <h2>Contact</h2>
-<p>For privacy or support requests, contact Carte through ${contact}.</p>
+<p>For privacy or support requests, contact Tavue through ${contact}.</p>
 `
   );
 }
@@ -741,12 +746,12 @@ function supportPage(env) {
   return pageTemplate(
     "Support",
     `
-<p>If Carte cannot read a menu, try one page at a time, photographed straight-on in good light. Keep the full menu page inside the frame.</p>
+<p>If Tavue cannot read a menu, try one page at a time, photographed straight-on in good light. Keep the full menu page inside the frame.</p>
 <h2>Report a problem</h2>
-<p>Open Carte and tap “Found a bug? Tell us” near the bottom of the home screen. Include what kind of menu you scanned and what went wrong. Do not include sensitive personal information.</p>
+<p>Open Tavue and tap “Found a bug? Tell us” near the bottom of the home screen. Include what kind of menu you scanned and what went wrong. Do not include sensitive personal information.</p>
 ${email}
 <h2>Privacy</h2>
-<p>Read the <a href="/privacy">Carte Privacy Policy</a>.</p>
+<p>Read the <a href="/privacy">Tavue Privacy Policy</a>.</p>
 `
   );
 }

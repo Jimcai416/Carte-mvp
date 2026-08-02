@@ -1,4 +1,6 @@
-// Carte design tokens — warm porcelain × lively food accents.
+import { Platform } from "react-native";
+
+// Tavue design tokens — warm porcelain × lively food accents.
 // The neutral canvas gives food photography room to carry the colour. Tomato
 // coral is reserved for action, while citrus adds small moments of appetite.
 
@@ -44,7 +46,11 @@ export const fonts = {
   bodySemibold: "DMSans_600SemiBold",
   bodyBold: "DMSans_700Bold",
   // Native text is a deliberate fallback for scripts not covered by the Latin fonts.
-  native: undefined,
+  native: Platform.select({
+    ios: "System",
+    android: "sans-serif",
+    default: "system-ui",
+  }),
   mono: "DMSans_600SemiBold",
 };
 

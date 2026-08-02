@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { readMigratedValue, removeValueAndLegacy } from "./storage";
 
 // Monetization gate for the MVP test build:
 // - First full menu scan is free (photos visible).
@@ -6,13 +7,15 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 //   until the user "subscribes" (paywall is a stub at this stage).
 // Swap `isUnlocked` for a RevenueCat entitlement check before launch.
 
-const SCANS_KEY = "dishlens.scans";
-const UNLOCK_KEY = "dishlens.unlocked";
+const SCANS_KEY = "tavue.scans";
+const LEGACY_SCANS_KEYS = ["dishlens.scans", "carte.scans"];
+const UNLOCK_KEY = "tavue.unlocked";
+const LEGACY_UNLOCK_KEYS = ["dishlens.unlocked", "carte.unlocked"];
 
 export const FREE_FULL_SCANS = 1;
 
 export async function getScanCount(): Promise<number> {
-  const raw = await AsyncStorage.getItem(SCANS_KEY);
+  const raw = await readMigratedValue(SCANS_KEY, LEGACY_SCANS_KEYS);
   return raw ? parseInt(raw, 10) || 0 : 0;
 }
 
@@ -23,7 +26,7 @@ export async function incrementScanCount(): Promise<number> {
 }
 
 export async function isUnlocked(): Promise<boolean> {
-  return (await AsyncStorage.getItem(UNLOCK_KEY)) === "true";
+  return (await readMigratedValue(UNLOCK_KEY, LEGACY_UNLOCK_KEYS)) === "true";
 }
 
 // Dev/test unlock — wire to RevenueCat purchase later.
@@ -32,5 +35,8 @@ export async function setUnlocked(value: boolean): Promise<void> {
 }
 
 export async function resetForTesting(): Promise<void> {
-  await AsyncStorage.multiRemove([SCANS_KEY, UNLOCK_KEY]);
+  await Promise.all([
+    removeValueAndLegacy(SCANS_KEY, LEGACY_SCANS_KEYS),
+    removeValueAndLegacy(UNLOCK_KEY, LEGACY_UNLOCK_KEYS),
+  ]);
 }

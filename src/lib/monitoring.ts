@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/react-native";
+import { APP_NAME, APP_VERSION } from "../config";
 
 const dsn = process.env.EXPO_PUBLIC_SENTRY_DSN?.trim() ?? "";
 const enabled = dsn.length > 0;
@@ -6,6 +7,7 @@ const enabled = dsn.length > 0;
 Sentry.init({
   dsn,
   enabled,
+  release: `${APP_NAME}@${APP_VERSION}`,
   environment: process.env.EXPO_PUBLIC_APP_ENV ?? "production",
   sendDefaultPii: false,
   attachScreenshot: false,
@@ -13,7 +15,7 @@ Sentry.init({
   enableNativeCrashHandling: true,
   tracesSampleRate: 0,
   beforeSend(event) {
-    // Carte never sends menu photos, menu text or request bodies to Sentry.
+    // Tavue never sends menu photos, menu text or request bodies to Sentry.
     delete event.user;
     if (event.request) {
       delete event.request.data;

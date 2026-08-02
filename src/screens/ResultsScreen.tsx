@@ -340,7 +340,7 @@ export default function ResultsScreen({
           </Pressable>
         </GlassSurface>
         <View style={styles.headerCopy}>
-          <Text style={styles.headerEyebrow}>CARTE · {t("menuGuide").toUpperCase()}</Text>
+          <Text style={styles.headerEyebrow}>TAVUE · {t("menuGuide").toUpperCase()}</Text>
           <Text style={styles.headerTitle} numberOfLines={1}>
             {result.cuisine || t("menuFallback")}
           </Text>

@@ -16,8 +16,7 @@ import { getClientId } from "../lib/identity";
 import { captureOperationalError } from "../lib/monitoring";
 import { useT } from "../lib/i18n";
 import { colors, fonts, radius, space } from "../theme";
-
-const APP_VERSION = "0.7.0";
+import { API_CLIENT_HEADER, APP_VERSION } from "../config";
 
 export default function FeedbackSheet({
   visible,
@@ -40,7 +39,7 @@ export default function FeedbackSheet({
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-carte-client": clientId,
+          [API_CLIENT_HEADER]: clientId,
         },
         body: JSON.stringify({
           message,

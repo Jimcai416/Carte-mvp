@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 160" role="img" aria-labelledby="title desc">
+  <title id="title">TAVUE wordmark</title>
+  <desc id="desc">A custom rounded geometric wordmark spelling TAVUE.</desc>
+  <g fill="none" stroke="#2B211D" stroke-width="18" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M15 22H115M65 22V138"/>
+    <path d="M145 138L190 22L235 138M162 94H218"/>
+    <path d="M260 22L305 138L350 22"/>
+    <path d="M380 22V95C380 124 393 138 416 138C439 138 452 124 452 95V22"/>
+    <path d="M585 22H490V138H585M490 80H565"/>
+  </g>
+</svg>

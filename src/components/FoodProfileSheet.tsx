@@ -60,7 +60,7 @@ export default function FoodProfileSheet({ visible, onClose }: { visible: boolea
       <Pressable style={styles.backdrop} onPress={onClose}>
         <Pressable style={styles.sheet} onPress={() => {}}>
           <View style={styles.handle} />
-          <Text style={styles.eyebrow}>YOUR CARTE</Text>
+          <Text style={styles.eyebrow}>YOUR TAVUE</Text>
           <Text style={styles.title}>The way you eat</Text>
           <Text style={styles.subtitle}>We’ll highlight possible matches on every menu. Always confirm allergies with restaurant staff.</Text>
           <ScrollView showsVerticalScrollIndicator={false}>

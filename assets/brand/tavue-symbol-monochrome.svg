@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Tavue symbol — monochrome</title>
+  <desc id="desc">A one-color capital T with a transparent V-shaped viewing aperture.</desc>
+  <path fill="#2B211D" fill-rule="evenodd" d="M80 88H432C448 88 460 100 460 116V162C460 180 446 194 428 194H352C332 194 322 205 322 225V397C322 416 314 428 300 438L272 458C262 465 250 465 240 458L212 438C198 428 190 416 190 397V225C190 205 180 194 160 194H84C66 194 52 180 52 162V116C52 100 64 88 80 88ZM225 190C220 190 216 193 216 198L243 356C246 373 250 390 256 390C262 390 266 373 269 356L296 198C296 193 292 190 287 190H225Z"/>
+</svg>

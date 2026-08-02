@@ -1,6 +1,6 @@
 {
-  "name": "carte-mvp",
-  "version": "0.7.0",
+  "name": "tavue-mvp",
+  "version": "0.8.0",
   "main": "index.js",
   "private": true,
   "scripts": {

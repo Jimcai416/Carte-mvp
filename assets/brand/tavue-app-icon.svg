@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">Tavue app icon</title>
+  <desc id="desc">Terracotta Tavue T and V symbol on a warm paper background.</desc>
+  <defs>
+    <radialGradient id="paper" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(512 410) rotate(90) scale(706)">
+      <stop offset="0" stop-color="#FFFCF7"/>
+      <stop offset="0.62" stop-color="#FFF6E9"/>
+      <stop offset="1" stop-color="#F7E7D3"/>
+    </radialGradient>
+    <linearGradient id="body" x1="256" y1="88" x2="256" y2="465" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F48F74"/>
+      <stop offset="0.28" stop-color="#E66A4E"/>
+      <stop offset="0.72" stop-color="#D4583F"/>
+      <stop offset="1" stop-color="#BD4533"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="256" y1="96" x2="256" y2="244" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.50"/>
+      <stop offset="0.42" stop-color="#FFFFFF" stop-opacity="0.13"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="edge" x1="82" y1="93" x2="417" y2="458" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFD0C2"/>
+      <stop offset="0.42" stop-color="#D35B43"/>
+      <stop offset="1" stop-color="#A93B2B"/>
+    </linearGradient>
+    <filter id="symbolShadow" x="20" y="50" width="472" height="450" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="12" result="blur"/>
+      <feOffset in="blur" dy="12" result="offset"/>
+      <feFlood flood-color="#7F2D20" flood-opacity="0.22" result="color"/>
+      <feComposite in="color" in2="offset" operator="in" result="castShadow"/>
+      <feMerge>
+        <feMergeNode in="castShadow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <clipPath id="markClip" clip-rule="evenodd">
+      <path fill-rule="evenodd" d="M80 88H432C448 88 460 100 460 116V162C460 180 446 194 428 194H352C332 194 322 205 322 225V397C322 416 314 428 300 438L272 458C262 465 250 465 240 458L212 438C198 428 190 416 190 397V225C190 205 180 194 160 194H84C66 194 52 180 52 162V116C52 100 64 88 80 88ZM225 190C220 190 216 193 216 198L243 356C246 373 250 390 256 390C262 390 266 373 269 356L296 198C296 193 292 190 287 190H225Z"/>
+    </clipPath>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#paper)"/>
+  <ellipse cx="512" cy="813" rx="286" ry="57" fill="#B64A34" opacity="0.08"/>
+  <g transform="translate(64 64) scale(1.75)" filter="url(#symbolShadow)">
+    <path fill="url(#body)" stroke="url(#edge)" stroke-width="4" stroke-linejoin="round" fill-rule="evenodd" d="M80 88H432C448 88 460 100 460 116V162C460 180 446 194 428 194H352C332 194 322 205 322 225V397C322 416 314 428 300 438L272 458C262 465 250 465 240 458L212 438C198 428 190 416 190 397V225C190 205 180 194 160 194H84C66 194 52 180 52 162V116C52 100 64 88 80 88ZM225 190C220 190 216 193 216 198L243 356C246 373 250 390 256 390C262 390 266 373 269 356L296 198C296 193 292 190 287 190H225Z"/>
+    <g clip-path="url(#markClip)">
+      <path d="M66 112C66 101 74 98 86 98H426C438 98 446 101 446 112C446 144 426 164 394 164H118C86 164 66 144 66 112Z" fill="url(#glass)"/>
+      <path d="M70 111C71 102 78 99 89 99H423C434 99 441 102 442 111" fill="none" stroke="#FFFFFF" stroke-opacity="0.78" stroke-width="4" stroke-linecap="round"/>
+      <path d="M66 165C69 179 79 184 94 184H160C185 184 200 200 200 225V395C200 409 206 417 218 426L245 445C252 450 260 450 267 445L294 426" fill="none" stroke="#FFB7A4" stroke-opacity="0.42" stroke-width="4" stroke-linecap="round"/>
+      <path d="M230 199L252 349C254 361 255 369 256 371C257 369 258 361 260 349L282 199" fill="none" stroke="#8D3024" stroke-opacity="0.30" stroke-width="7" stroke-linecap="round"/>
+    </g>
+  </g>
+</svg>
