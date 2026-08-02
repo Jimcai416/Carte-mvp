@@ -35,5 +35,4 @@ html = html.replace(
   </head>`
 );
 
-html = html.replace(/(href|src)="\//g, '$1="./');
 fs.writeFileSync(indexPath, html);
