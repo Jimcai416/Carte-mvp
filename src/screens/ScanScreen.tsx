@@ -7,6 +7,7 @@ import {
   FlatList,
   Image,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -172,9 +173,12 @@ export default function ScanScreen({
     });
     if (!consented) return;
 
-    const permission = fromCamera
-      ? await ImagePicker.requestCameraPermissionsAsync()
-      : await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const permission =
+      Platform.OS === "web"
+        ? { granted: true }
+        : fromCamera
+          ? await ImagePicker.requestCameraPermissionsAsync()
+          : await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (!permission.granted) {
       Alert.alert(t("permTitle"), fromCamera ? t("permCamera") : t("permPhotos"));
@@ -344,7 +348,9 @@ export default function ScanScreen({
             <View style={styles.ticketTop}>
               <View style={styles.ticketLabelRow}>
                 <Text style={styles.mono}>MENU PASS</Text>
-                <Text style={styles.mono}>№ 0042</Text>
+                <Text style={styles.mono}>
+                  {Platform.OS === "web" ? t("instantWeb") : "№ 0042"}
+                </Text>
               </View>
 
               <Text
@@ -389,7 +395,9 @@ export default function ScanScreen({
             </View>
             <View style={styles.buttonCopy}>
               <Text style={styles.primaryBtnText}>{t("scanMenu")}</Text>
-              <Text style={styles.primaryBtnSub}>{t("scanMenuSub")}</Text>
+              <Text style={styles.primaryBtnSub}>
+                {Platform.OS === "web" ? t("webScanMenuSub") : t("scanMenuSub")}
+              </Text>
             </View>
             <Text style={styles.buttonArrow}>›</Text>
           </Pressable>

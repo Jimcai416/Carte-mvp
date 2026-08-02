@@ -2,7 +2,7 @@
   <img src="./assets/icon.png" alt="Carte app icon" width="128" />
   <h1>Carte</h1>
   <p>Point Carte at any restaurant menu. See every dish in your language.</p>
-  <p><strong>Version 0.5.13 · Bilingual Order Handoff</strong></p>
+  <p><strong>Version 0.6.0 · Instant Web</strong></p>
 </div>
 
 Carte turns a photo of a restaurant menu into a clear, visual guide. It
@@ -14,7 +14,8 @@ show the server.
 
 ## Current product
 
-- Expo / React Native app for iOS and Android
+- One Expo / React Native product for iOS, Android and mobile Web
+- Zero-install Web flow with mobile camera/photo upload and single-page deployment
 - Camera and photo-library menu scanning
 - Claude-powered OCR, translation and menu structuring
 - Menu sections, dietary filters and compact visual dish cards
@@ -32,7 +33,7 @@ is not reachable and does not limit the beta.
 
 ## Beta safeguards
 
-Version 0.5.13 retains the infrastructure required for controlled testing:
+Version 0.6.0 retains the infrastructure required for controlled testing:
 
 - Privacy-safe, first-party product analytics through Cloudflare Analytics Engine
 - Sentry crash monitoring with PII, screenshots and menu content disabled
@@ -53,6 +54,17 @@ environment.
 npm ci
 npx expo start --clear
 ```
+
+Run the instant Web experience locally or export its static production build:
+
+```bash
+npm run web
+npm run export:web
+```
+
+The production-ready single-page bundle is written to `dist/`. Deploy that
+directory to any static host; all scanning continues to use the existing
+Cloudflare Worker.
 
 The app currently points to the deployed Worker URL in `src/lib/api.ts`.
 Optional client environment variables are documented in `.env.example`.

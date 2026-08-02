@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Alert, Linking } from "react-native";
+import { Alert, Linking, Platform } from "react-native";
 import { API_URL } from "./api";
 
 const AI_CONSENT_KEY = "carte.aiProcessingConsent.v1";
@@ -16,6 +16,14 @@ export async function ensureAiProcessingConsent(
   copy: ConsentCopy
 ): Promise<boolean> {
   if ((await AsyncStorage.getItem(AI_CONSENT_KEY)) === "accepted") return true;
+
+  if (Platform.OS === "web") {
+    const accepted = window.confirm(`${copy.title}\n\n${copy.body}`);
+    if (accepted) {
+      await AsyncStorage.setItem(AI_CONSENT_KEY, "accepted");
+    }
+    return accepted;
+  }
 
   return new Promise((resolve) => {
     let settled = false;

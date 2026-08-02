@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Platform,
   StatusBar,
   StyleSheet,
   View,
@@ -46,28 +47,30 @@ function App() {
 
   return (
     <SafeAreaProvider>
-      <View style={styles.root}>
-        <StatusBar
-          barStyle="dark-content"
-          backgroundColor="transparent"
-          translucent
-        />
-        <AmbientBackdrop />
-
-        {screen.name === "scan" && (
-          <ScanScreen
-            onResult={(result: ScanResult) =>
-              setScreen({ name: "results", result })
-            }
+      <View style={styles.canvas}>
+        <View style={[styles.root, Platform.OS === "web" && styles.webRoot]}>
+          <StatusBar
+            barStyle="dark-content"
+            backgroundColor="transparent"
+            translucent
           />
-        )}
+          <AmbientBackdrop />
 
-        {screen.name === "results" && (
-          <ResultsScreen
-            result={screen.result}
-            onBack={() => setScreen({ name: "scan" })}
-          />
-        )}
+          {screen.name === "scan" && (
+            <ScanScreen
+              onResult={(result: ScanResult) =>
+                setScreen({ name: "results", result })
+              }
+            />
+          )}
+
+          {screen.name === "results" && (
+            <ResultsScreen
+              result={screen.result}
+              onBack={() => setScreen({ name: "scan" })}
+            />
+          )}
+        </View>
       </View>
     </SafeAreaProvider>
   );
@@ -77,6 +80,19 @@ export default withMonitoring(App);
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
+  canvas: {
+    flex: 1,
+    backgroundColor: "#EDE6DF",
+    alignItems: "center",
+  },
+  webRoot: {
+    width: "100%",
+    maxWidth: 640,
+    shadowColor: "#50352F",
+    shadowOpacity: 0.12,
+    shadowRadius: 32,
+    shadowOffset: { width: 0, height: 0 },
+  },
   fontLoading: {
     flex: 1,
     alignItems: "center",
