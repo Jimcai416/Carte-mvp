@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  BackHandler,
   Platform,
   StatusBar,
   StyleSheet,
@@ -26,6 +27,7 @@ const WEB_FONT_TIMEOUT_MS = 5_000;
 
 function App() {
   const [screen, setScreen] = useState<Screen>({ name: "scan" });
+  const latestResult = useRef<ScanResult | null>(null);
   const [webFontFallbackReady, setWebFontFallbackReady] = useState(false);
   const [fontsLoaded, fontError] = useFonts({
     CormorantGaramond_500Medium,
@@ -39,6 +41,66 @@ function App() {
   useEffect(() => {
     void track("app_opened");
   }, []);
+
+  useEffect(() => {
+    if (Platform.OS === "web" || screen.name !== "results") return;
+
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      () => {
+        setScreen({ name: "scan" });
+        return true;
+      },
+    );
+
+    return () => subscription.remove();
+  }, [screen.name]);
+
+  useEffect(() => {
+    if (Platform.OS !== "web" || typeof window === "undefined") return;
+
+    const currentState = window.history.state as { tavueScreen?: Screen["name"] } | null;
+    if (!currentState?.tavueScreen) {
+      window.history.replaceState(
+        { ...(currentState ?? {}), tavueScreen: "scan" },
+        "",
+        window.location.href,
+      );
+    }
+
+    const handlePopState = (event: PopStateEvent) => {
+      const destination = (event.state as { tavueScreen?: Screen["name"] } | null)
+        ?.tavueScreen;
+      if (destination === "results" && latestResult.current) {
+        setScreen({ name: "results", result: latestResult.current });
+      } else {
+        setScreen({ name: "scan" });
+      }
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  const showResults = (result: ScanResult) => {
+    latestResult.current = result;
+    if (Platform.OS === "web" && typeof window !== "undefined") {
+      window.history.pushState({ tavueScreen: "results" }, "", window.location.href);
+    }
+    setScreen({ name: "results", result });
+  };
+
+  const showScan = () => {
+    if (
+      Platform.OS === "web" &&
+      typeof window !== "undefined" &&
+      (window.history.state as { tavueScreen?: string } | null)?.tavueScreen === "results"
+    ) {
+      window.history.back();
+      return;
+    }
+    setScreen({ name: "scan" });
+  };
 
   useEffect(() => {
     if (fontError) {
@@ -94,17 +156,13 @@ function App() {
           <AmbientBackdrop />
 
           {screen.name === "scan" && (
-            <ScanScreen
-              onResult={(result: ScanResult) =>
-                setScreen({ name: "results", result })
-              }
-            />
+            <ScanScreen onResult={showResults} />
           )}
 
           {screen.name === "results" && (
             <ResultsScreen
               result={screen.result}
-              onBack={() => setScreen({ name: "scan" })}
+              onBack={showScan}
             />
           )}
         </View>
