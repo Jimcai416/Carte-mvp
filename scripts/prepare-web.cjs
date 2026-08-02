@@ -20,8 +20,10 @@ html = html.replace(
     <meta property="og:type" content="website" />
     <style id="tavue-web-shell">
       html, body, #root {
-        min-height: 100%;
-        min-height: 100dvh;
+        height: var(--tavue-viewport-height, 100dvh) !important;
+        min-height: 0 !important;
+        max-height: var(--tavue-viewport-height, 100dvh);
+        width: 100%;
         background-color: #F7F3EE;
       }
       html, body {
@@ -31,7 +33,53 @@ html = html.replace(
       body {
         -webkit-text-size-adjust: 100%;
       }
+      #tavue-app-shell {
+        height: var(--tavue-viewport-height, 100dvh);
+        max-height: var(--tavue-viewport-height, 100dvh);
+      }
+      body > div:not(#root) [role="dialog"] {
+        top: 0 !important;
+        bottom: auto !important;
+        height: var(--tavue-viewport-height, 100dvh) !important;
+        max-height: var(--tavue-viewport-height, 100dvh);
+      }
+      @media (hover: none) and (pointer: coarse) {
+        #tavue-app-shell {
+          width: 100vw !important;
+          max-width: none !important;
+        }
+      }
     </style>
+    <script id="tavue-visual-viewport">
+      (() => {
+        const root = document.documentElement;
+        let frame = 0;
+
+        const applyViewport = () => {
+          frame = 0;
+          const viewport = window.visualViewport;
+          const height = viewport?.height || window.innerHeight;
+          if (height > 0) {
+            root.style.setProperty("--tavue-viewport-height", Math.round(height) + "px");
+          }
+        };
+
+        const scheduleViewport = () => {
+          if (frame) return;
+          frame = window.requestAnimationFrame(applyViewport);
+        };
+
+        applyViewport();
+        window.addEventListener("resize", scheduleViewport, { passive: true });
+        window.addEventListener("orientationchange", scheduleViewport, { passive: true });
+        window.addEventListener("pageshow", scheduleViewport, { passive: true });
+        window.visualViewport?.addEventListener("resize", scheduleViewport, { passive: true });
+        window.visualViewport?.addEventListener("scroll", scheduleViewport, { passive: true });
+        document.addEventListener("visibilitychange", () => {
+          if (!document.hidden) scheduleViewport();
+        });
+      })();
+    </script>
   </head>`
 );
 
