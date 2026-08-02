@@ -6,7 +6,8 @@
   "scripts": {
     "start": "expo start",
     "web": "expo start --web",
-    "export:web": "expo export --platform web && node scripts/prepare-web.cjs"
+    "export:web": "expo export --platform web && node scripts/prepare-web.cjs",
+    "test:worker": "node --test worker/test/openverse.test.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/cormorant-garamond": "^0.4.1",

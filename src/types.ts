@@ -28,6 +28,13 @@ export interface Dish {
   worth_it: string | null;     // one-line ordering advice
   image_url: string | null;    // resolved by the worker (cached lookup)
   image_query: string;         // fallback query if image_url is null
+  image_provider?: "openverse";
+  image_creator?: string | null;
+  image_creator_url?: string | null;
+  image_license?: string | null;
+  image_license_url?: string | null;
+  image_source_url?: string | null;
+  image_attribution?: string | null;
 }
 
 export interface ScanResult {

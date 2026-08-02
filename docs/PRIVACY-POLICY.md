@@ -16,7 +16,9 @@ subject to limited safety, legal, and contractual exceptions.
 The resulting menu is returned to the user's device. Recent-menu history is
 stored locally on that device. To find representative dish images, Tavue may
 send short food-name search queries—not the menu photo or user identifier—to
-Brave Search or Google Programmable Search.
+Openverse. Tavue accepts only results carrying the configured open-content
+licences and retains the creator, source and licence metadata returned with the
+image.
 
 ## Security and beta analytics
 
@@ -47,7 +49,7 @@ to operate Tavue:
 - Cloudflare for hosting, rate limiting, logs, and first-party analytics
 - Anthropic for AI menu processing
 - Sentry for diagnostics when configured
-- Brave Search or Google Programmable Search for representative dish images
+- Openverse for openly licensed representative dish images
 
 ## User choices and rights
 

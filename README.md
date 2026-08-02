@@ -78,14 +78,21 @@ npx wrangler secret put ANTHROPIC_API_KEY
 npx wrangler deploy
 ```
 
-Optional image-search secrets:
+Openverse dish-photo credentials:
 
 ```bash
-npx wrangler secret put BRAVE_API_KEY
-# or
-npx wrangler secret put GOOGLE_CSE_KEY
-npx wrangler secret put GOOGLE_CSE_CX
+npx wrangler secret put OPENVERSE_CLIENT_ID
+npx wrangler secret put OPENVERSE_CLIENT_SECRET
 ```
+
+The default production filter accepts only CC0 and Public Domain Mark photos,
+which keeps existing clients safe even before they display attribution. A newer
+client with visible creator and licence credit may opt into CC BY by setting
+`OPENVERSE_LICENSES="cc0,pdm,by"`. Brave and Google results are not used as a
+fallback because a search API subscription does not grant image copyright.
+The Worker checks at most 30 uncached dishes per scan on Openverse's standard
+API tier and shares results through `DISH_IMAGES`, or the existing `FEEDBACK`
+KV namespace when a dedicated image cache is not configured.
 
 The beta requires an anonymous client ID, limits each installation to six scan
 attempts per minute and allows 20 scans per day. Daily counters use

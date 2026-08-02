@@ -4,12 +4,12 @@
 //
 // Pipeline:
 //   1. One multimodal Claude call: OCR + translate + structure the menu.
-//   2. For each dish, resolve a photo: KV cache → Google Image Search → null.
+//   2. For each dish, resolve a rights-cleared photo: KV cache → Openverse → null.
 //
 // Secrets (set with `wrangler secret put NAME`):
 //   ANTHROPIC_API_KEY   required
-//   GOOGLE_CSE_KEY      optional — Google Custom Search API key
-//   GOOGLE_CSE_CX       optional — Programmable Search Engine ID (image search on)
+//   OPENVERSE_CLIENT_ID      required for dish photos
+//   OPENVERSE_CLIENT_SECRET  required for dish photos
 // KV binding (optional but recommended): DISH_IMAGES
 
 // Haiku: ~3-4x faster than Sonnet for extraction tasks like this.
@@ -22,6 +22,12 @@ const MAX_IMAGE_BASE64_CHARS = 10_000_000;
 const MAX_EVENT_BODY_BYTES = 8_192;
 const MAX_FEEDBACK_BODY_BYTES = 16_384;
 const FEEDBACK_TTL_SECONDS = 60 * 60 * 24 * 180;
+const OPENVERSE_API = "https://api.openverse.org/v1";
+const OPENVERSE_DEFAULT_LICENSES = ["cc0", "pdm"];
+const OPENVERSE_SUPPORTED_LICENSES = new Set(["cc0", "pdm", "by"]);
+let openverseToken = null;
+let openverseTokenExpiresAt = 0;
+let openverseTokenRequest = null;
 const ANALYTICS_EVENTS = new Set([
   "app_opened",
   "scan_started",
@@ -447,7 +453,9 @@ async function scan(request, env, clientId, cors) {
   }
 
   const dishes = (parsed.dishes || []).slice(0, MAX_DISHES);
-  const cap = parseInt(env.IMAGE_LOOKUP_CAP || "45", 10);
+  // Openverse's standard tier allows 100 requests/minute. Thirty uncached
+  // lookups leaves room for multiple scans while shared KV handles repeats.
+  const cap = parseInt(env.IMAGE_LOOKUP_CAP || "30", 10);
   const batchSize = parseInt(env.IMAGE_BATCH_SIZE || "10", 10);
   const toLookup = dishes.slice(0, cap);
 
@@ -455,7 +463,7 @@ async function scan(request, env, clientId, cors) {
     const batch = toLookup.slice(i, i + batchSize);
     await Promise.all(
       batch.map(async (dish) => {
-        dish.image_url = await resolveImage(env, dish);
+        applyImage(dish, await resolveImage(env, dish));
       })
     );
   }
@@ -537,101 +545,168 @@ function errorCode(error) {
   return "upstream_failure";
 }
 
-// Cache key: normalised dish identity, shared across all users forever.
+// v2 deliberately bypasses legacy Brave/Google URL-only cache entries.
 function cacheKey(dish) {
-  return `img:${dish.original_name}`.toLowerCase().replace(/\s+/g, "");
+  return `img:v2:openverse:${dish.image_query || dish.original_name}`
+    .toLowerCase()
+    .replace(/\s+/g, "");
 }
 
 async function resolveImage(env, dish) {
-  // KV cache hit → free
-  if (env.DISH_IMAGES) {
-    const cached = await env.DISH_IMAGES.get(cacheKey(dish));
-    if (cached) return cached === "none" ? null : cached;
+  const imageStore = env.DISH_IMAGES || env.FEEDBACK;
+  // KV cache hit → free. New entries include the rights metadata used for
+  // auditing and, in newer clients, visible attribution.
+  if (imageStore) {
+    const cached = await imageStore.get(cacheKey(dish));
+    if (cached) {
+      if (cached === "none") return null;
+      try {
+        const parsed = JSON.parse(cached);
+        if (isUsableOpenverseAsset(parsed, allowedOpenverseLicenses(env))) {
+          return parsed;
+        }
+      } catch {
+        // Ignore legacy URL-only or malformed cache entries.
+      }
+    }
   }
 
-  let link = null;
-  if (env.BRAVE_API_KEY) {
-    link = await braveImage(env, dish);
-  } else if (env.GOOGLE_CSE_KEY && env.GOOGLE_CSE_CX) {
-    link = await googleImage(env, dish);
-  } else {
-    // No image search configured → graceful null (app shows glyph placeholder)
-    return null;
-  }
+  const asset = await openverseImage(env, dish);
 
-  if (env.DISH_IMAGES) {
-    // Cache misses too, so we never pay twice for the same dish.
-    await env.DISH_IMAGES.put(cacheKey(dish), link || "none", {
-      expirationTtl: link ? 60 * 60 * 24 * 90 : 60 * 60 * 24 * 7,
+  if (imageStore) {
+    // Re-check rights metadata periodically; cache short misses to avoid
+    // hammering Openverse for obscure dishes.
+    await imageStore.put(cacheKey(dish), asset ? JSON.stringify(asset) : "none", {
+      expirationTtl: asset ? 60 * 60 * 24 * 30 : 60 * 60 * 24,
     });
   }
-  return link;
+  return asset;
 }
 
-// Domains that produce watermarked stock, ad creatives, or recipe title-cards.
-const IMAGE_DOMAIN_BLOCKLIST = [
-  "pinterest.",
-  "alamy.com",
-  "shutterstock.com",
-  "gettyimages.",
-  "istockphoto.com",
-  "dreamstime.com",
-  "depositphotos.com",
-  "123rf.com",
-  "stock.adobe.com",
-  "vectorstock.com",
-  "etsy.com",
-  "amazon.",
-  "ebay.",
-];
-
-function isBlockedSource(result) {
-  const src = (
-    result?.url ||
-    result?.meta_url?.hostname ||
-    result?.source ||
-    ""
-  ).toLowerCase();
-  return IMAGE_DOMAIN_BLOCKLIST.some((d) => src.includes(d));
+function allowedOpenverseLicenses(env) {
+  const configured = String(env.OPENVERSE_LICENSES || "")
+    .split(",")
+    .map((license) => license.trim().toLowerCase())
+    .filter((license) => OPENVERSE_SUPPORTED_LICENSES.has(license));
+  return new Set(configured.length ? configured : OPENVERSE_DEFAULT_LICENSES);
 }
 
-async function braveImage(env, dish, attempt = 0) {
+function httpsUrl(value) {
+  return typeof value === "string" && /^https:\/\//i.test(value) ? value : null;
+}
+
+function isUsableOpenverseAsset(asset, allowedLicenses) {
+  if (!asset || asset.provider !== "openverse" || asset.mature) return false;
+  if (!allowedLicenses.has(String(asset.license || "").toLowerCase())) return false;
+  if (!httpsUrl(asset.url) || !httpsUrl(asset.source_url) || !httpsUrl(asset.license_url)) {
+    return false;
+  }
+  // Attribution licences are only usable when Openverse supplies a creator.
+  if (String(asset.license).toLowerCase() === "by" && !asset.creator) return false;
+  return true;
+}
+
+function applyImage(dish, asset) {
+  dish.image_url = asset?.url || null;
+  if (!asset) return;
+  dish.image_provider = asset.provider;
+  dish.image_creator = asset.creator;
+  dish.image_creator_url = asset.creator_url;
+  dish.image_license = asset.license_label;
+  dish.image_license_url = asset.license_url;
+  dish.image_source_url = asset.source_url;
+  dish.image_attribution = asset.attribution;
+}
+
+async function getOpenverseToken(env, forceRefresh = false) {
+  if (!env.OPENVERSE_CLIENT_ID || !env.OPENVERSE_CLIENT_SECRET) return null;
+  if (!forceRefresh && openverseToken && Date.now() < openverseTokenExpiresAt - 60_000) {
+    return openverseToken;
+  }
+  if (!forceRefresh && openverseTokenRequest) return openverseTokenRequest;
+
+  openverseTokenRequest = (async () => {
+    try {
+      const body = new URLSearchParams({
+        grant_type: "client_credentials",
+        client_id: env.OPENVERSE_CLIENT_ID,
+        client_secret: env.OPENVERSE_CLIENT_SECRET,
+      });
+      const res = await fetch(`${OPENVERSE_API}/auth_tokens/token/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: body.toString(),
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (!data?.access_token) return null;
+      openverseToken = data.access_token;
+      openverseTokenExpiresAt = Date.now() + Math.max(60, Number(data.expires_in) || 600) * 1000;
+      return openverseToken;
+    } catch {
+      return null;
+    } finally {
+      openverseTokenRequest = null;
+    }
+  })();
+  return openverseTokenRequest;
+}
+
+function openverseLicenseLabel(result) {
+  const license = String(result.license || "").toLowerCase();
+  const version = result.license_version ? ` ${result.license_version}` : "";
+  if (license === "pdm") return `Public Domain Mark${version}`;
+  if (license === "cc0") return `CC0${version}`;
+  if (license === "by") return `CC BY${version}`;
+  return license.toUpperCase();
+}
+
+function openverseAsset(result, allowedLicenses) {
+  const asset = {
+    provider: "openverse",
+    url: httpsUrl(result.url) || httpsUrl(result.thumbnail),
+    creator: typeof result.creator === "string" ? result.creator.trim() || null : null,
+    creator_url: httpsUrl(result.creator_url),
+    license: String(result.license || "").toLowerCase(),
+    license_label: openverseLicenseLabel(result),
+    license_url: httpsUrl(result.license_url),
+    source_url: httpsUrl(result.foreign_landing_url),
+    attribution: typeof result.attribution === "string" ? result.attribution.trim() : "",
+    mature: result.mature === true,
+  };
+  return isUsableOpenverseAsset(asset, allowedLicenses) ? asset : null;
+}
+
+async function openverseImage(env, dish, retryAuth = true) {
   try {
-    const q = encodeURIComponent(`${dish.image_query} dish food`);
-    const res = await fetch(
-      `https://api.search.brave.com/res/v1/images/search?q=${q}&count=3&safesearch=strict`,
-      {
-        headers: {
-          Accept: "application/json",
-          "X-Subscription-Token": env.BRAVE_API_KEY,
-        },
-      }
-    );
-    if (res.status === 429 && attempt < 1) {
-      // Rate limited — wait a beat and retry once.
-      await new Promise((r) => setTimeout(r, 1100));
-      return braveImage(env, dish, attempt + 1);
+    const token = await getOpenverseToken(env);
+    if (!token) return null;
+    const allowedLicenses = allowedOpenverseLicenses(env);
+    const params = new URLSearchParams({
+      q: `${dish.image_query || dish.original_name} dish food`,
+      license: Array.from(allowedLicenses).join(","),
+      category: "photograph",
+      extension: "jpg,jpeg,png,webp",
+      filter_dead: "true",
+      mature: "false",
+      page_size: "10",
+    });
+    const res = await fetch(`${OPENVERSE_API}/images/?${params.toString()}`, {
+      headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
+    });
+    if (res.status === 401 && retryAuth) {
+      openverseToken = null;
+      openverseTokenExpiresAt = 0;
+      await getOpenverseToken(env, true);
+      return openverseImage(env, dish, false);
     }
     if (!res.ok) return null;
     const data = await res.json();
-    const results = data.results || [];
-    // First non-blocklisted candidate; fall back to the first result at all.
-    const pick = results.find((r) => !isBlockedSource(r)) || results[0];
-    return pick?.properties?.url || pick?.thumbnail?.src || null;
-  } catch {
+    for (const result of data.results || []) {
+      const asset = openverseAsset(result, allowedLicenses);
+      if (asset) return asset;
+    }
     return null;
-  }
-}
-
-async function googleImage(env, dish) {
-  try {
-    const q = encodeURIComponent(`${dish.image_query} dish food`);
-    const res = await fetch(
-      `https://www.googleapis.com/customsearch/v1?key=${env.GOOGLE_CSE_KEY}&cx=${env.GOOGLE_CSE_CX}&searchType=image&num=1&imgSize=large&safe=active&q=${q}`
-    );
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data.items?.[0]?.link || null;
   } catch {
     return null;
   }
@@ -776,7 +851,7 @@ function privacyPage(env) {
 
 <h2>Menu scans</h2>
 <p>When you choose to scan, the menu photo is sent securely to Tavue’s Cloudflare-hosted service and then to Anthropic’s commercial API for menu recognition and translation. Tavue does not save the menu photo in its own storage. Anthropic normally deletes API inputs and outputs within 30 days, subject to limited safety, legal, and contractual exceptions.</p>
-<p>The resulting menu is returned to your device. Recent-menu history is stored locally on your device. To find representative dish images, Tavue may send short food-name search queries—not the menu photo or your identifier—to Brave Search or Google Programmable Search.</p>
+<p>The resulting menu is returned to your device. Recent-menu history is stored locally on your device. To find representative dish images, Tavue may send short food-name search queries—not the menu photo or your identifier—to Openverse. Tavue accepts only results carrying the configured open-content licences and retains the source and licence metadata returned with the image.</p>
 
 <h2>Security and beta analytics</h2>
 <p>Tavue creates a random installation identifier for abuse prevention, daily scan limits, and first-party beta analytics. Analytics contain only approved event names such as scan started/completed, duration, dish count, detail opened, order added, and history reopened. They do not contain menu photos, menu text, dish names, prices, free-form content, advertising identifiers, or precise location. The identifier is irreversibly hashed before analytics storage. Cloudflare Analytics Engine retains these beta events for three months.</p>
@@ -785,7 +860,7 @@ function privacyPage(env) {
 <p>If crash monitoring is enabled, Sentry may receive crash and diagnostic information such as app version, platform, stack trace, and an error category. Tavue disables default personal information, screenshots, view hierarchy, and request-body collection. Optional feedback contains the message you type plus platform and app version, and is automatically deleted after 180 days.</p>
 
 <h2>Sharing, advertising, and tracking</h2>
-<p>Tavue does not sell personal data, serve targeted advertising, or track users across other companies’ apps and websites. Service providers process data only to operate Tavue: Cloudflare for hosting and analytics, Anthropic for AI processing, Sentry for diagnostics when configured, and Brave or Google for dish-image search.</p>
+<p>Tavue does not sell personal data, serve targeted advertising, or track users across other companies’ apps and websites. Service providers process data only to operate Tavue: Cloudflare for hosting and analytics, Anthropic for AI processing, Sentry for diagnostics when configured, and Openverse for openly licensed dish-image search.</p>
 
 <h2>Your choices and rights</h2>
 <p>You can decline AI processing and continue using any menus already saved on your device. Removing Tavue deletes its local history and random identifier. UK and EEA users may request access, correction, deletion, restriction, or objection where applicable.</p>

@@ -6,7 +6,8 @@ compatibility_date = "2026-07-26"
 REQUIRE_CLIENT_ID = "true"
 DAILY_SCAN_LIMIT = "20"
 
-# Optional but recommended: dish image cache.
+# Optional dedicated dish image cache. Without it, the Worker uses the existing
+# FEEDBACK namespace with isolated `img:v2:openverse:` keys.
 # Create with:  npx wrangler kv namespace create DISH_IMAGES
 # then paste the id below and uncomment.
 # [[kv_namespaces]]
