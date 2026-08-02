@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Animated,
   Pressable,
@@ -24,16 +24,24 @@ import {
 } from "../lib/currency";
 import { track } from "../lib/analytics";
 import { Dish, ScanResult } from "../types";
+import {
+  EMPTY_FOOD_PROFILE,
+  FoodProfile,
+  getFoodProfile,
+  isForYou,
+  riskFlags,
+} from "../lib/preferences";
 import { colors, fonts, radius, space } from "../theme";
 
-type Filter = "all" | "recommended" | "vegetarian" | "spicy";
+type Filter = "all" | "forYou" | "recommended" | "vegetarian" | "spicy";
 const RESULTS_HEADER_HEIGHT = 68;
 
 function dishKey(dish: Dish): string {
   return [dish.category, dish.original_name, dish.price].filter(Boolean).join("::");
 }
 
-function matchesFilter(dish: Dish, filter: Filter): boolean {
+function matchesFilter(dish: Dish, filter: Filter, profile: FoodProfile): boolean {
+  if (filter === "forYou") return isForYou(dish, profile);
   if (filter === "recommended") {
     return !!dish.worth_it || dish.flags.includes("house_special");
   }
@@ -61,6 +69,7 @@ export default function ResultsScreen({
   const [showCart, setShowCart] = useState(false);
   const [filter, setFilter] = useState<Filter>("all");
   const [category, setCategory] = useState<string | null>(null);
+  const [foodProfile, setFoodProfile] = useState<FoodProfile>(EMPTY_FOOD_PROFILE);
   const scrollY = React.useRef(new Animated.Value(0)).current;
   const topGlassOpacity = scrollY.interpolate({
     inputRange: [0, 14, 62],
@@ -75,6 +84,8 @@ export default function ResultsScreen({
   );
   const displayCurrency = displayCurrencyForResult(result);
   const showConverted = !result.currency || result.currency !== displayCurrency;
+  useEffect(() => { void getFoodProfile().then(setFoodProfile); }, []);
+  const hasFoodProfile = foodProfile.avoid.length > 0 || foodProfile.prefer.length > 0;
 
   const categories = useMemo(() => {
     const names: string[] = [];
@@ -90,7 +101,7 @@ export default function ResultsScreen({
     const fallback = t("allDishes");
 
     result.dishes
-      .filter((dish) => matchesFilter(dish, filter))
+      .filter((dish) => matchesFilter(dish, filter, foodProfile))
       .filter((dish) => !category || dish.category?.trim() === category)
       .forEach((dish) => {
         const title = dish.category?.trim() || fallback;
@@ -98,7 +109,7 @@ export default function ResultsScreen({
       });
 
     return Array.from(grouped, ([title, data]) => ({ title, data }));
-  }, [category, filter, result.dishes, t]);
+  }, [category, filter, foodProfile, result.dishes, t]);
 
   const count = order.reduce((total, line) => total + line.qty, 0);
   const totals = orderTotals(order);
@@ -132,6 +143,7 @@ export default function ResultsScreen({
 
   const filters: Array<{ id: Filter; label: string }> = [
     { id: "all", label: t("filterAll") },
+    ...(hasFoodProfile ? [{ id: "forYou" as Filter, label: t("filterForYou") }] : []),
     { id: "recommended", label: t("filterRecommended") },
     { id: "vegetarian", label: t("filterVegetarian") },
     { id: "spicy", label: t("filterSpicy") },
@@ -182,6 +194,16 @@ export default function ResultsScreen({
               </View>
               <Text style={styles.safetyText}>{t("allergensNote")}</Text>
             </View>
+            {hasFoodProfile && (
+              <Pressable style={styles.profileBanner} onPress={() => setFilter("forYou")}>
+                <View style={styles.profileMark}><Text style={styles.profileMarkText}>♡</Text></View>
+                <View style={styles.profileCopy}>
+                  <Text style={styles.profileTitle}>{t("profileActive")}</Text>
+                  <Text style={styles.profileText}>{t("profileActiveSub")}</Text>
+                </View>
+                <Text style={styles.profileArrow}>›</Text>
+              </Pressable>
+            )}
 
             <ScrollView
               horizontal
@@ -257,6 +279,7 @@ export default function ResultsScreen({
         renderItem={({ item }) => (
           <DishCard
             dish={item}
+            personalRisk={riskFlags(item, foodProfile).length > 0}
             onPress={() => {
               void track("dish_detail_opened", { source: "card" });
               setSelected(item);
@@ -518,6 +541,23 @@ const styles = StyleSheet.create({
     lineHeight: 15,
     color: colors.muted,
   },
+  profileBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: space(5),
+    marginTop: space(3),
+    borderWidth: 1,
+    borderColor: "rgba(184,58,41,0.2)",
+    borderRadius: radius.image,
+    backgroundColor: "#FFF2EF",
+    padding: space(3),
+  },
+  profileMark: { width: 32, height: 32, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: colors.surface },
+  profileMarkText: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.accentStrong },
+  profileCopy: { flex: 1, paddingHorizontal: space(2.5) },
+  profileTitle: { fontFamily: fonts.bodySemibold, fontSize: 12, color: colors.text },
+  profileText: { fontFamily: fonts.body, fontSize: 9, lineHeight: 13, color: colors.muted, marginTop: 1 },
+  profileArrow: { fontSize: 22, color: colors.accent },
   filterRow: {
     gap: space(2),
     paddingHorizontal: space(5),

@@ -36,6 +36,7 @@ export interface ScanResult {
   display_currency?: string | null; // currency selected by the user
   menu_language: string;       // e.g. "Traditional Chinese"
   dishes: Dish[];
+  page_count?: number;         // locally merged multi-page scan
 }
 
 export type Screen =
