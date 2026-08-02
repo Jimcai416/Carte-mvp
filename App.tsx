@@ -37,6 +37,20 @@ function App() {
     void track("app_opened");
   }, []);
 
+  useEffect(() => {
+    if (Platform.OS !== "web" || typeof document === "undefined") return;
+
+    const viewport = document.querySelector<HTMLMetaElement>('meta[name="viewport"]');
+    if (viewport && !viewport.content.includes("viewport-fit=cover")) {
+      viewport.content = `${viewport.content}, viewport-fit=cover`;
+    }
+
+    document.documentElement.style.backgroundColor = colors.background;
+    document.body.style.backgroundColor = colors.background;
+    document.documentElement.style.overscrollBehaviorY = "none";
+    document.body.style.overscrollBehaviorY = "none";
+  }, []);
+
   if (!fontsLoaded) {
     return (
       <View style={styles.fontLoading}>
@@ -47,7 +61,7 @@ function App() {
 
   return (
     <SafeAreaProvider>
-      <View style={styles.canvas}>
+      <View style={[styles.canvas, Platform.OS === "web" && styles.webCanvas]}>
         <View style={[styles.root, Platform.OS === "web" && styles.webRoot]}>
           <StatusBar
             barStyle="dark-content"
@@ -84,6 +98,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#EDE6DF",
     alignItems: "center",
+  },
+  webCanvas: {
+    backgroundColor: colors.background,
   },
   webRoot: {
     width: "100%",

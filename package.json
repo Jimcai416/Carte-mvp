@@ -1,12 +1,12 @@
 {
   "name": "carte-mvp",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "main": "index.js",
   "private": true,
   "scripts": {
     "start": "expo start",
     "web": "expo start --web",
-    "export:web": "expo export --platform web"
+    "export:web": "expo export --platform web && node scripts/prepare-web.cjs"
   },
   "dependencies": {
     "@expo-google-fonts/cormorant-garamond": "^0.4.1",
