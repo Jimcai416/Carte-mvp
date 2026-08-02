@@ -18,6 +18,7 @@ import type { NativeScrollEvent, NativeSyntheticEvent } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import { ScanError, scanMenu } from "../lib/api";
+import { prepareMenuImage } from "../lib/imagePreprocessing";
 import { track } from "../lib/analytics";
 import { captureOperationalError } from "../lib/monitoring";
 import { ensureAiProcessingConsent } from "../lib/privacy";
@@ -199,7 +200,7 @@ export default function ScanScreen({
       ? await ImagePicker.launchCameraAsync(opts)
       : await ImagePicker.launchImageLibraryAsync(opts);
 
-    const assets = picked.canceled ? [] : (picked.assets ?? []).filter((asset) => !!asset.base64);
+    const assets = picked.canceled ? [] : (picked.assets ?? []);
     if (!assets.length) return;
 
     const source = fromCamera ? "camera" : "library";
@@ -220,12 +221,15 @@ export default function ScanScreen({
       const pages: ScanResult[] = [];
       for (const asset of assets) {
         setPreviewUri(asset.uri);
+        const prepared = await prepareMenuImage(asset);
+        setPreviewUri(prepared.previewUri);
         pages.push(await scanMenu(
-          asset.base64!,
-          asset.mimeType ?? "image/jpeg",
+          prepared.base64,
+          prepared.mediaType,
           getLanguage(),
           targetCurrency,
-          controller.signal
+          controller.signal,
+          prepared.retryBase64
         ));
       }
       const first = pages[0];
