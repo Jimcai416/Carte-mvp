@@ -35,10 +35,8 @@ jobs:
         env:
           EXPO_NO_TELEMETRY: "1"
 
-      - name: Make export work below the repository path
-        run: |
-          sed -i 's|href="/|href="./|g; s|src="/|src="./|g' dist/index.html
-          touch dist/.nojekyll
+      - name: Prepare Pages artifact
+        run: touch dist/.nojekyll
 
       - name: Configure Pages
         uses: actions/configure-pages@v5

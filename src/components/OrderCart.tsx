@@ -68,6 +68,18 @@ function serverPromptFor(menuLanguage: string): string {
   return "We’d like to order the following, please.";
 }
 
+function usesLatinPromptFont(menuLanguage: string): boolean {
+  const language = (menuLanguage || "").toLowerCase();
+  return ![
+    "chinese",
+    "mandarin",
+    "cantonese",
+    "japanese",
+    "korean",
+    "thai",
+  ].some((script) => language.includes(script));
+}
+
 function ServerOrderView({
   lines,
   menuLanguage,
@@ -143,7 +155,7 @@ function ServerOrderView({
           accessibilityLabel="Increase screen brightness"
           accessibilityState={{ selected: bright }}
         >
-          <Text style={[styles.sun, bright && styles.sunActive]}>☀</Text>
+          <Text style={[styles.sun, bright && styles.sunActive]}>☼</Text>
         </Pressable>
       </View>
 
@@ -154,7 +166,14 @@ function ServerOrderView({
         contentContainerStyle={styles.serverList}
         ListHeaderComponent={
           <View style={styles.serverIntro}>
-            <Text style={styles.serverPrompt}>{serverPromptFor(menuLanguage)}</Text>
+            <Text
+              style={[
+                styles.serverPrompt,
+                usesLatinPromptFont(menuLanguage) && styles.serverPromptLatin,
+              ]}
+            >
+              {serverPromptFor(menuLanguage)}
+            </Text>
             <View style={styles.serverMetaRow}>
               <Text style={styles.serverMeta}>{itemCount} {t("items")}</Text>
               <Text style={styles.serverMeta}>{menuLanguage || "MENU"}</Text>
@@ -455,13 +474,13 @@ const styles = StyleSheet.create({
 
   serverScreen: {
     flex: 1,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.background,
     paddingHorizontal: space(5),
   },
   serverHeader: {
     flexDirection: "row",
     alignItems: "center",
-    minHeight: 58,
+    minHeight: 62,
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
   },
@@ -473,14 +492,19 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 1,
     borderColor: colors.line,
-    backgroundColor: colors.surfaceRaised,
+    backgroundColor: colors.surface,
   },
   serverHeaderButtonActive: {
     borderColor: colors.accent,
-    backgroundColor: colors.accentWash,
+    backgroundColor: "#F8E9E5",
   },
   serverBack: { color: colors.text, fontSize: 30, lineHeight: 31, marginTop: -2 },
-  sun: { color: colors.muted, fontSize: 18 },
+  sun: {
+    color: colors.accentStrong,
+    fontFamily: fonts.display,
+    fontSize: 23,
+    lineHeight: 25,
+  },
   sunActive: { color: colors.accentStrong },
   serverHeaderCopy: { flex: 1, alignItems: "center" },
   serverEyebrow: {
@@ -498,14 +522,21 @@ const styles = StyleSheet.create({
   serverList: { paddingTop: space(4), paddingBottom: space(3) },
   serverIntro: {
     paddingHorizontal: space(1),
-    paddingBottom: space(4),
+    paddingTop: space(1),
+    paddingBottom: space(5),
   },
   serverPrompt: {
     fontFamily: fonts.native,
-    fontSize: 24,
-    lineHeight: 32,
+    fontSize: 25,
+    lineHeight: 34,
     fontWeight: "600",
     color: colors.text,
+  },
+  serverPromptLatin: {
+    fontFamily: fonts.display,
+    fontSize: 31,
+    lineHeight: 35,
+    fontWeight: "normal",
   },
   serverMetaRow: {
     flexDirection: "row",
@@ -526,30 +557,37 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.line,
     borderRadius: radius.card,
-    backgroundColor: colors.paper,
+    backgroundColor: colors.surfaceRaised,
     padding: space(4),
     marginBottom: space(3),
+    shadowColor: "#50352F",
+    shadowOpacity: 0.045,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 1,
   },
   serverLineTop: { flexDirection: "row", alignItems: "flex-start", gap: space(3) },
   serverQtyBox: {
-    width: 52,
-    height: 52,
+    width: 48,
+    height: 48,
     flexDirection: "row",
     alignItems: "baseline",
     justifyContent: "center",
-    borderRadius: 15,
-    backgroundColor: colors.primaryAction,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#E7B9AF",
+    backgroundColor: "#F9ECE8",
     paddingTop: space(1.5),
   },
   serverQty: {
     fontFamily: fonts.bodyBold,
-    fontSize: 25,
-    color: colors.onAccent,
+    fontSize: 24,
+    color: colors.accentStrong,
   },
   serverTimes: {
     fontFamily: fonts.bodyBold,
     fontSize: 13,
-    color: colors.onAccentMuted,
+    color: colors.accentStrong,
     marginLeft: 1,
   },
   serverDishCopy: { flex: 1, paddingRight: space(3) },
@@ -569,7 +607,7 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   serverDetails: {
-    marginLeft: 52 + space(3),
+    marginLeft: 48 + space(3),
     paddingTop: space(2),
   },
   serverTranslated: {
@@ -589,12 +627,12 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     overflow: "hidden",
     borderRadius: radius.pill,
-    backgroundColor: colors.surfaceRaised,
+    backgroundColor: "#F8ECE8",
     paddingHorizontal: space(2.5),
     paddingVertical: space(1),
     fontFamily: fonts.native,
     fontSize: 11,
-    color: colors.muted,
+    color: colors.accentStrong,
   },
   serverPrice: {
     fontFamily: fonts.bodyBold,
@@ -608,19 +646,21 @@ const styles = StyleSheet.create({
     fontFamily: fonts.mono,
     fontSize: 8,
     letterSpacing: 1,
-    color: colors.paperLine,
+    color: colors.lineStrong,
   },
   backToCart: {
     minHeight: 50,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: radius.pill,
-    backgroundColor: colors.text,
+    borderWidth: 1.5,
+    borderColor: colors.lineStrong,
+    backgroundColor: colors.surfaceRaised,
   },
   backToCartText: {
     fontFamily: fonts.bodyBold,
     fontSize: 14,
-    color: colors.surface,
+    color: colors.accentStrong,
   },
   serverClose: {
     alignSelf: "center",
