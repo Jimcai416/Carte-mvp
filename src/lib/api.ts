@@ -1,6 +1,7 @@
 import { ScanResult } from "../types";
 import { CurrencyCode } from "./currency";
 import { getClientId } from "./identity";
+import { API_CLIENT_HEADER } from "../config";
 
 // Set this to your deployed Cloudflare Worker URL after `wrangler deploy`,
 // e.g. "https://dishlens-api.<your-subdomain>.workers.dev"
@@ -29,7 +30,7 @@ export async function scanMenu(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-carte-client": clientId,
+      [API_CLIENT_HEADER]: clientId,
     },
     signal,
     body: JSON.stringify({

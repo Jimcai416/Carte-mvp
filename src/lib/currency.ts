@@ -1,7 +1,9 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Dish, ScanResult } from "../types";
+import { readMigratedValue } from "./storage";
 
-export const CURRENCY_KEY = "carte.targetCurrency";
+export const CURRENCY_KEY = "tavue.targetCurrency";
+const LEGACY_CURRENCY_KEYS = ["carte.targetCurrency"];
 
 export const CURRENCIES = [
   { code: "GBP", symbol: "£", label: "British Pound" },
@@ -43,7 +45,7 @@ export function setCurrency(code: string): CurrencyCode {
 
 export async function initCurrency(): Promise<CurrencyCode> {
   try {
-    const saved = await AsyncStorage.getItem(CURRENCY_KEY);
+    const saved = await readMigratedValue(CURRENCY_KEY, LEGACY_CURRENCY_KEYS);
     if (saved && CURRENCY_CODES.has(saved)) {
       currentCurrency = saved as CurrencyCode;
     }

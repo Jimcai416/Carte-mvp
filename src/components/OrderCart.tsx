@@ -98,7 +98,7 @@ function ServerOrderView({
   const [bright, setBright] = useState(false);
   const itemCount = lines.reduce((sum, line) => sum + line.qty, 0);
 
-  useKeepAwake("carte-server-order");
+  useKeepAwake("tavue-server-order");
 
   useEffect(() => {
     return () => {
@@ -173,7 +173,7 @@ function ServerOrderView({
           <Text style={styles.serverBack}>‹</Text>
         </Pressable>
         <View style={styles.serverHeaderCopy}>
-          <Text style={styles.serverEyebrow}>CARTE · ORDER</Text>
+          <Text style={styles.serverEyebrow}>TAVUE · ORDER</Text>
           <Text style={styles.serverTitle}>{t("orderTitle")}</Text>
         </View>
         <Pressable
@@ -516,7 +516,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: space(5),
   },
   serverScreenBright: {
-    backgroundColor: colors.surfaceRaised,
+    backgroundColor: "#FFFFFF",
   },
   serverHeader: {
     flexDirection: "row",
@@ -608,7 +608,8 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   serverLineBright: {
-    borderColor: colors.lineStrong,
+    borderColor: "#CDBEB4",
+    backgroundColor: "#FFFFFF",
     shadowOpacity: 0,
     elevation: 0,
   },

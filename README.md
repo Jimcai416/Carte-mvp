@@ -1,11 +1,11 @@
 <div align="center">
-  <img src="./assets/icon.png" alt="Carte app icon" width="128" />
-  <h1>Carte</h1>
-  <p>Point Carte at any restaurant menu. See every dish in your language.</p>
-  <p><strong>Version 0.7.0 · The app remembers the way you eat</strong></p>
+  <img src="./assets/tavue-icon.png" alt="Tavue app icon" width="128" />
+  <h1>Tavue</h1>
+  <p>Point Tavue at any restaurant menu. See every dish in your language.</p>
+  <p><strong>Version 0.8.0 · TAVUE rebrand and release polish</strong></p>
 </div>
 
-Carte turns a photo of a restaurant menu into a clear, visual guide. It
+Tavue turns a photo of a restaurant menu into a clear, visual guide. It
 translates and organises the menu, explains unfamiliar dishes, shows dietary
 and allergen guidance, converts prices and helps the user build an order to
 show the server.
@@ -33,7 +33,7 @@ is not reachable and does not limit the beta.
 
 ## Beta safeguards
 
-Version 0.7.0 retains the infrastructure required for controlled testing:
+Version 0.8.0 retains the infrastructure required for controlled testing:
 
 - Privacy-safe, first-party product analytics through Cloudflare Analytics Engine
 - Sentry crash monitoring with PII, screenshots and menu content disabled
@@ -108,7 +108,10 @@ See `worker/analytics.sql` for the core beta queries.
 ```text
 App.tsx
 assets/
-  icon.png
+  tavue-icon.png
+  tavue-splash.png
+  tavue-adaptive-foreground.png
+  tavue-adaptive-monochrome.png
 src/
   screens/
     ScanScreen.tsx
@@ -140,6 +143,7 @@ docs/
 
 ## Release handoff
 
+- Brand rules and migration record: [`docs/BRAND.md`](docs/BRAND.md)
 - TestFlight and EAS instructions: [`docs/TESTFLIGHT.md`](docs/TESTFLIGHT.md)
 - App Store privacy answers: [`docs/APP-STORE-PRIVACY.md`](docs/APP-STORE-PRIVACY.md)
 - Privacy policy source: [`docs/PRIVACY-POLICY.md`](docs/PRIVACY-POLICY.md)

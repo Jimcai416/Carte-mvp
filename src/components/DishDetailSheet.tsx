@@ -101,7 +101,7 @@ export default function DishDetailSheet({
                 <View style={styles.advice}>
                   <Text style={styles.adviceMark}>“</Text>
                   <View style={styles.adviceCopy}>
-                    <Text style={styles.adviceLabel}>{t("carteTake")}</Text>
+                    <Text style={styles.adviceLabel}>{t("tavueTake")}</Text>
                     <Text style={styles.adviceText}>{dish.worth_it}</Text>
                   </View>
                 </View>

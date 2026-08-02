@@ -1,8 +1,10 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Alert, Linking, Platform } from "react-native";
 import { API_URL } from "./api";
+import { readMigratedValue } from "./storage";
 
-const AI_CONSENT_KEY = "carte.aiProcessingConsent.v1";
+const AI_CONSENT_KEY = "tavue.aiProcessingConsent.v1";
+const LEGACY_AI_CONSENT_KEYS = ["carte.aiProcessingConsent.v1"];
 
 type ConsentCopy = {
   title: string;
@@ -15,7 +17,12 @@ type ConsentCopy = {
 export async function ensureAiProcessingConsent(
   copy: ConsentCopy
 ): Promise<boolean> {
-  if ((await AsyncStorage.getItem(AI_CONSENT_KEY)) === "accepted") return true;
+  if (
+    (await readMigratedValue(AI_CONSENT_KEY, LEGACY_AI_CONSENT_KEYS)) ===
+    "accepted"
+  ) {
+    return true;
+  }
 
   if (Platform.OS === "web") {
     const accepted = window.confirm(`${copy.title}\n\n${copy.body}`);

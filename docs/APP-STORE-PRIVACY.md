@@ -1,6 +1,6 @@
 # App Store privacy answers
 
-Use this as the conservative App Store Connect disclosure for Carte 0.5.13.
+Use this as the conservative App Store Connect disclosure for Tavue 0.8.0.
 Re-check it whenever a provider or SDK changes.
 
 ## URLs
@@ -10,7 +10,7 @@ Re-check it whenever a provider or SDK changes.
 - Support URL:
   `https://dishlens-api.jimcai416.workers.dev/support`
 
-These URLs become current after the v0.5.13 Worker is deployed.
+These URLs serve the Tavue copy after the Worker from this branch is deployed.
 
 ## Tracking
 
@@ -32,7 +32,7 @@ These URLs become current after the v0.5.13 Worker is deployed.
 Notes:
 
 - `Photos or Videos` covers menu images processed by Anthropic's API.
-- `Device ID` is a conservative description of Carte's random installation ID.
+- `Device ID` is a conservative description of Tavue's random installation ID.
   It is not an Apple hardware or advertising identifier.
 - `Product Interaction` covers the strict event allowlist in
   `src/lib/analytics.ts`.
@@ -44,7 +44,7 @@ Notes:
 
 ## Review notes
 
-Carte sends a user-selected menu photo to a Cloudflare Worker and Anthropic's
-commercial API only after the user accepts the in-app disclosure. Carte does
+Tavue sends a user-selected menu photo to a Cloudflare Worker and Anthropic's
+commercial API only after the user accepts the in-app disclosure. Tavue does
 not store the photo. Results are stored locally in Recent menus. The AI warning
 asks users to confirm ingredients and allergens with restaurant staff.

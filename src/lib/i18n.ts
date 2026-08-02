@@ -1,10 +1,12 @@
 import { useEffect, useReducer } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { readMigratedValue } from "./storage";
 
-// Carte UI localisation. The selected language drives BOTH the scan output
+// Tavue UI localisation. The selected language drives BOTH the scan output
 // (via the worker prompt) and every string in the app's own interface.
 
-export const LANG_KEY = "carte.targetLanguage";
+export const LANG_KEY = "tavue.targetLanguage";
+const LEGACY_LANG_KEYS = ["carte.targetLanguage"];
 
 export const LANGUAGES = [
   { code: "English", label: "English" },
@@ -59,7 +61,7 @@ const EN: Strings = {
   permPhotos: "Allow photo access to choose a menu photo.",
   privacyTitle: "Before we analyse your menu",
   privacyBody:
-    "Carte sends the menu photo securely to our service and Anthropic's AI to translate it. Carte does not store the photo or use it for advertising. Anthropic may retain API inputs and outputs for up to 30 days.",
+    "Tavue sends the menu photo securely to our service and Anthropic's AI to translate it. Tavue does not store the photo or use it for advertising. Anthropic may retain API inputs and outputs for up to 30 days.",
   privacyCancel: "Not now",
   privacyViewPolicy: "Privacy policy",
   privacyContinue: "Continue",
@@ -102,7 +104,7 @@ const EN: Strings = {
   orderReady: "Ready to show your server",
   addToOrder: "Add to order",
   ingredients: "Ingredients",
-  carteTake: "CARTE'S TAKE",
+  tavueTake: "TAVUE'S TAKE",
   showServer: "Show server",
   inYourOrder: "in your order",
   flagSpicy: "Spicy",
@@ -158,7 +160,7 @@ const STRINGS: Record<string, Strings> = {
     permPhotos: "请允许访问相册来选择菜单照片。",
     privacyTitle: "分析菜单之前",
     privacyBody:
-      "Carte 会安全地将菜单照片发送至我们的服务和 Anthropic AI 进行翻译。Carte 不会储存照片，也不会将其用于广告。Anthropic 可能会保留 API 输入和输出最多 30 天。",
+      "Tavue 会安全地将菜单照片发送至我们的服务和 Anthropic AI 进行翻译。Tavue 不会储存照片，也不会将其用于广告。Anthropic 可能会保留 API 输入和输出最多 30 天。",
     privacyCancel: "暂不",
     privacyViewPolicy: "隐私政策",
     privacyContinue: "继续",
@@ -199,7 +201,7 @@ const STRINGS: Record<string, Strings> = {
     orderReady: "可直接出示给服务员",
     addToOrder: "加入点单",
     ingredients: "配料",
-    carteTake: "CARTE 建议",
+    tavueTake: "TAVUE 建议",
     showServer: "出示给服务员",
     inYourOrder: "已加入点单",
     flagSpicy: "辣",
@@ -252,7 +254,7 @@ const STRINGS: Record<string, Strings> = {
     permPhotos: "請允許存取相簿來選擇菜單相片。",
     privacyTitle: "分析菜單之前",
     privacyBody:
-      "Carte 會安全地將菜單相片傳送至我們的服務和 Anthropic AI 進行翻譯。Carte 不會儲存相片，也不會將其用於廣告。Anthropic 可能會保留 API 輸入和輸出最多 30 天。",
+      "Tavue 會安全地將菜單相片傳送至我們的服務和 Anthropic AI 進行翻譯。Tavue 不會儲存相片，也不會將其用於廣告。Anthropic 可能會保留 API 輸入和輸出最多 30 天。",
     privacyCancel: "暫不",
     privacyViewPolicy: "私隱政策",
     privacyContinue: "繼續",
@@ -293,7 +295,7 @@ const STRINGS: Record<string, Strings> = {
     orderReady: "可直接出示給侍應",
     addToOrder: "加入點單",
     ingredients: "配料",
-    carteTake: "CARTE 建議",
+    tavueTake: "TAVUE 建議",
     showServer: "出示給侍應",
     inYourOrder: "已加入點單",
     flagSpicy: "辣",
@@ -346,7 +348,7 @@ const STRINGS: Record<string, Strings> = {
     permPhotos: "Autorisez l'accès aux photos pour choisir un menu.",
     privacyTitle: "Avant d'analyser votre menu",
     privacyBody:
-      "Carte envoie la photo du menu de manière sécurisée à notre service et à l'IA d'Anthropic pour la traduire. Carte ne conserve pas la photo et ne l'utilise pas à des fins publicitaires. Anthropic peut conserver les entrées et sorties de l'API jusqu'à 30 jours.",
+      "Tavue envoie la photo du menu de manière sécurisée à notre service et à l'IA d'Anthropic pour la traduire. Tavue ne conserve pas la photo et ne l'utilise pas à des fins publicitaires. Anthropic peut conserver les entrées et sorties de l'API jusqu'à 30 jours.",
     privacyCancel: "Pas maintenant",
     privacyViewPolicy: "Confidentialité",
     privacyContinue: "Continuer",
@@ -384,7 +386,7 @@ const STRINGS: Record<string, Strings> = {
     orderReady: "Prête à montrer au serveur",
     addToOrder: "Ajouter",
     ingredients: "Ingrédients",
-    carteTake: "L'AVIS DE CARTE",
+    tavueTake: "L'AVIS DE TAVUE",
     showServer: "Montrer au serveur",
     inYourOrder: "dans la commande",
     flagSpicy: "Épicé",
@@ -437,7 +439,7 @@ const STRINGS: Record<string, Strings> = {
     permPhotos: "Consenti l'accesso alle foto per scegliere un menù.",
     privacyTitle: "Prima di analizzare il menù",
     privacyBody:
-      "Carte invia in modo sicuro la foto del menù al nostro servizio e all'IA di Anthropic per tradurla. Carte non conserva la foto né la usa per la pubblicità. Anthropic può conservare input e output API fino a 30 giorni.",
+      "Tavue invia in modo sicuro la foto del menù al nostro servizio e all'IA di Anthropic per tradurla. Tavue non conserva la foto né la usa per la pubblicità. Anthropic può conservare input e output API fino a 30 giorni.",
     privacyCancel: "Non ora",
     privacyViewPolicy: "Privacy",
     privacyContinue: "Continua",
@@ -475,7 +477,7 @@ const STRINGS: Record<string, Strings> = {
     orderReady: "Pronto da mostrare al cameriere",
     addToOrder: "Aggiungi all'ordine",
     ingredients: "Ingredienti",
-    carteTake: "IL PARERE DI CARTE",
+    tavueTake: "IL PARERE DI TAVUE",
     showServer: "Mostra al cameriere",
     inYourOrder: "nel tuo ordine",
     flagSpicy: "Piccante",
@@ -528,7 +530,7 @@ const STRINGS: Record<string, Strings> = {
     permPhotos: "Permite el acceso a fotos para elegir un menú.",
     privacyTitle: "Antes de analizar tu menú",
     privacyBody:
-      "Carte envía la foto del menú de forma segura a nuestro servicio y a la IA de Anthropic para traducirla. Carte no guarda la foto ni la usa para publicidad. Anthropic puede conservar las entradas y salidas de la API hasta 30 días.",
+      "Tavue envía la foto del menú de forma segura a nuestro servicio y a la IA de Anthropic para traducirla. Tavue no guarda la foto ni la usa para publicidad. Anthropic puede conservar las entradas y salidas de la API hasta 30 días.",
     privacyCancel: "Ahora no",
     privacyViewPolicy: "Privacidad",
     privacyContinue: "Continuar",
@@ -566,7 +568,7 @@ const STRINGS: Record<string, Strings> = {
     orderReady: "Listo para enseñar al camarero",
     addToOrder: "Añadir al pedido",
     ingredients: "Ingredientes",
-    carteTake: "LA OPINIÓN DE CARTE",
+    tavueTake: "LA OPINIÓN DE TAVUE",
     showServer: "Mostrar al camarero",
     inYourOrder: "en tu pedido",
     flagSpicy: "Picante",
@@ -619,7 +621,7 @@ const STRINGS: Record<string, Strings> = {
     permPhotos: "写真選択のため写真へのアクセスを許可してください。",
     privacyTitle: "メニューを解析する前に",
     privacyBody:
-      "Carte は翻訳のため、メニュー写真を当社サービスと Anthropic の AI に安全に送信します。Carte は写真を保存せず、広告にも使用しません。Anthropic は API の入力と出力を最大30日間保持する場合があります。",
+      "Tavue は翻訳のため、メニュー写真を当社サービスと Anthropic の AI に安全に送信します。Tavue は写真を保存せず、広告にも使用しません。Anthropic は API の入力と出力を最大30日間保持する場合があります。",
     privacyCancel: "今はしない",
     privacyViewPolicy: "プライバシー",
     privacyContinue: "続ける",
@@ -657,7 +659,7 @@ const STRINGS: Record<string, Strings> = {
     orderReady: "店員に見せられます",
     addToOrder: "注文に追加",
     ingredients: "原材料",
-    carteTake: "CARTEのひとこと",
+    tavueTake: "TAVUEのひとこと",
     showServer: "店員に見せる",
     inYourOrder: "注文リスト内",
     flagSpicy: "辛い",
@@ -710,7 +712,7 @@ const STRINGS: Record<string, Strings> = {
     permPhotos: "메뉴 사진 선택을 위해 사진 접근을 허용해 주세요.",
     privacyTitle: "메뉴를 분석하기 전에",
     privacyBody:
-      "Carte는 번역을 위해 메뉴 사진을 당사 서비스와 Anthropic AI에 안전하게 전송합니다. Carte는 사진을 저장하거나 광고에 사용하지 않습니다. Anthropic은 API 입력과 출력을 최대 30일간 보관할 수 있습니다.",
+      "Tavue는 번역을 위해 메뉴 사진을 당사 서비스와 Anthropic AI에 안전하게 전송합니다. Tavue는 사진을 저장하거나 광고에 사용하지 않습니다. Anthropic은 API 입력과 출력을 최대 30일간 보관할 수 있습니다.",
     privacyCancel: "나중에",
     privacyViewPolicy: "개인정보 처리방침",
     privacyContinue: "계속",
@@ -748,7 +750,7 @@ const STRINGS: Record<string, Strings> = {
     orderReady: "직원에게 보여줄 수 있어요",
     addToOrder: "주문에 추가",
     ingredients: "재료",
-    carteTake: "CARTE의 한마디",
+    tavueTake: "TAVUE의 한마디",
     showServer: "직원에게 보여주기",
     inYourOrder: "주문 목록에 있음",
     flagSpicy: "매운맛",
@@ -801,7 +803,7 @@ const STRINGS: Record<string, Strings> = {
     permPhotos: "อนุญาตให้เข้าถึงรูปภาพเพื่อเลือกรูปเมนู",
     privacyTitle: "ก่อนวิเคราะห์เมนู",
     privacyBody:
-      "Carte ส่งรูปเมนูอย่างปลอดภัยไปยังบริการของเราและ AI ของ Anthropic เพื่อแปล Carte ไม่จัดเก็บรูปหรือใช้เพื่อการโฆษณา Anthropic อาจเก็บข้อมูลเข้าและผลลัพธ์ของ API ไว้สูงสุด 30 วัน",
+      "Tavue ส่งรูปเมนูอย่างปลอดภัยไปยังบริการของเราและ AI ของ Anthropic เพื่อแปล Tavue ไม่จัดเก็บรูปหรือใช้เพื่อการโฆษณา Anthropic อาจเก็บข้อมูลเข้าและผลลัพธ์ของ API ไว้สูงสุด 30 วัน",
     privacyCancel: "ไว้ภายหลัง",
     privacyViewPolicy: "นโยบายความเป็นส่วนตัว",
     privacyContinue: "ดำเนินการต่อ",
@@ -839,7 +841,7 @@ const STRINGS: Record<string, Strings> = {
     orderReady: "พร้อมแสดงให้พนักงาน",
     addToOrder: "เพิ่มในรายการสั่ง",
     ingredients: "ส่วนผสม",
-    carteTake: "คำแนะนำจาก CARTE",
+    tavueTake: "คำแนะนำจาก TAVUE",
     showServer: "แสดงให้พนักงาน",
     inYourOrder: "ในรายการสั่ง",
     flagSpicy: "เผ็ด",
@@ -875,7 +877,7 @@ export function setLanguage(code: string): void {
 
 export async function initLanguage(): Promise<void> {
   try {
-    const saved = await AsyncStorage.getItem(LANG_KEY);
+    const saved = await readMigratedValue(LANG_KEY, LEGACY_LANG_KEYS);
     if (saved && STRINGS[saved]) {
       current = saved;
       listeners.forEach((l) => l());

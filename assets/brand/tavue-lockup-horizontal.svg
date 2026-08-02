@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 280" role="img" aria-labelledby="title desc">
+  <title id="title">Tavue horizontal logo</title>
+  <desc id="desc">The Tavue glass symbol beside the custom TAVUE wordmark.</desc>
+  <defs>
+    <linearGradient id="body" x1="256" y1="88" x2="256" y2="465" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F48F74"/>
+      <stop offset="0.28" stop-color="#E66A4E"/>
+      <stop offset="0.72" stop-color="#D4583F"/>
+      <stop offset="1" stop-color="#BD4533"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="256" y1="96" x2="256" y2="244" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.48"/>
+      <stop offset="0.42" stop-color="#FFFFFF" stop-opacity="0.12"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="edge" x1="82" y1="93" x2="417" y2="458" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFD0C2"/>
+      <stop offset="0.42" stop-color="#D35B43"/>
+      <stop offset="1" stop-color="#A93B2B"/>
+    </linearGradient>
+    <clipPath id="markClip" clip-rule="evenodd">
+      <path fill-rule="evenodd" d="M80 88H432C448 88 460 100 460 116V162C460 180 446 194 428 194H352C332 194 322 205 322 225V397C322 416 314 428 300 438L272 458C262 465 250 465 240 458L212 438C198 428 190 416 190 397V225C190 205 180 194 160 194H84C66 194 52 180 52 162V116C52 100 64 88 80 88ZM225 190C220 190 216 193 216 198L243 356C246 373 250 390 256 390C262 390 266 373 269 356L296 198C296 193 292 190 287 190H225Z"/>
+    </clipPath>
+  </defs>
+  <g transform="translate(0 7) scale(.52)">
+    <path fill="url(#body)" stroke="url(#edge)" stroke-width="4" stroke-linejoin="round" fill-rule="evenodd" d="M80 88H432C448 88 460 100 460 116V162C460 180 446 194 428 194H352C332 194 322 205 322 225V397C322 416 314 428 300 438L272 458C262 465 250 465 240 458L212 438C198 428 190 416 190 397V225C190 205 180 194 160 194H84C66 194 52 180 52 162V116C52 100 64 88 80 88ZM225 190C220 190 216 193 216 198L243 356C246 373 250 390 256 390C262 390 266 373 269 356L296 198C296 193 292 190 287 190H225Z"/>
+    <g clip-path="url(#markClip)">
+      <path d="M66 112C66 101 74 98 86 98H426C438 98 446 101 446 112C446 144 426 164 394 164H118C86 164 66 144 66 112Z" fill="url(#glass)"/>
+      <path d="M70 111C71 102 78 99 89 99H423C434 99 441 102 442 111" fill="none" stroke="#FFFFFF" stroke-opacity="0.78" stroke-width="4" stroke-linecap="round"/>
+    </g>
+  </g>
+  <g transform="translate(310 41) scale(1.22)" fill="none" stroke="#2B211D" stroke-width="18" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M15 22H115M65 22V138"/>
+    <path d="M145 138L190 22L235 138M162 94H218"/>
+    <path d="M260 22L305 138L350 22"/>
+    <path d="M380 22V95C380 124 393 138 416 138C439 138 452 124 452 95V22"/>
+    <path d="M585 22H490V138H585M490 80H565"/>
+  </g>
+</svg>

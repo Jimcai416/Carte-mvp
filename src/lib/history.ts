@@ -1,8 +1,10 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from "react-native";
 import { ScanResult } from "../types";
+import { readMigratedValue, removeValueAndLegacy } from "./storage";
 
-const KEY = "dishlens.history";
+const KEY = "tavue.history";
+const LEGACY_KEYS = ["dishlens.history", "carte.history"];
 // Web is the instant, single-meal entry point. The app is the durable product.
 const MAX_SAVED = Platform.OS === "web" ? 10 : 250;
 
@@ -15,7 +17,7 @@ export interface SavedScan {
 
 export async function getHistory(): Promise<SavedScan[]> {
   try {
-    const raw = await AsyncStorage.getItem(KEY);
+    const raw = await readMigratedValue(KEY, LEGACY_KEYS);
     const list = raw ? (JSON.parse(raw) as SavedScan[]) : [];
     return Array.isArray(list) ? list : [];
   } catch {
@@ -42,7 +44,7 @@ export async function saveScan(
 }
 
 export async function clearHistory(): Promise<void> {
-  await AsyncStorage.removeItem(KEY);
+  await removeValueAndLegacy(KEY, LEGACY_KEYS);
 }
 
 type RelativeTimeCopy = {

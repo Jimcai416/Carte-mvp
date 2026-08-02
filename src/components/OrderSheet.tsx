@@ -82,7 +82,7 @@ export default function OrderSheet({
             </View>
           ) : null}
 
-          <Text style={styles.wordmark}>Carte</Text>
+          <Text style={styles.wordmark}>Tavue</Text>
         </View>
 
         <Text style={styles.hint}>{t("orderHint")}</Text>

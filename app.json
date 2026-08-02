@@ -1,26 +1,33 @@
 {
   "expo": {
-    "name": "Carte",
+    "name": "Tavue",
     "slug": "dishlens",
-    "version": "0.7.0",
+    "version": "0.8.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/tavue-icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
+      "image": "./assets/tavue-splash.png",
+      "resizeMode": "contain",
       "backgroundColor": "#FFF4E5"
     },
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.playbook.dishlens",
       "infoPlist": {
-        "NSCameraUsageDescription": "Carte uses the camera to scan restaurant menus.",
-        "NSPhotoLibraryUsageDescription": "Carte lets you choose a menu photo from your library.",
+        "NSCameraUsageDescription": "Tavue uses the camera to scan restaurant menus.",
+        "NSPhotoLibraryUsageDescription": "Tavue lets you choose a menu photo from your library.",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "package": "com.playbook.dishlens",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/tavue-adaptive-foreground.png",
+        "monochromeImage": "./assets/tavue-adaptive-monochrome.png",
+        "backgroundColor": "#FFF4E5"
+      },
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.READ_MEDIA_IMAGES"
@@ -32,9 +39,9 @@
     "web": {
       "bundler": "metro",
       "output": "single",
-      "favicon": "./assets/icon.png",
-      "name": "Carte — Menu, made clear",
-      "shortName": "Carte",
+      "favicon": "./assets/tavue-favicon.png",
+      "name": "Tavue — Visual Menu",
+      "shortName": "Tavue",
       "themeColor": "#F7F3EE",
       "backgroundColor": "#F7F3EE"
     },
@@ -42,11 +49,18 @@
       [
         "expo-image-picker",
         {
-          "cameraPermission": "Carte uses the camera to scan restaurant menus.",
+          "cameraPermission": "Tavue uses the camera to scan restaurant menus.",
           "microphonePermission": false
         }
       ],
-      "@sentry/react-native/expo"
+      [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://sentry.io/",
+          "project": "react-native",
+          "organization": "carte-lab"
+        }
+      ]
     ],
     "extra": {
       "eas": {

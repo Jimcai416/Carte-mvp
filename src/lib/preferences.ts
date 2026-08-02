@@ -1,7 +1,9 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Dish, DishFlag } from "../types";
+import { readMigratedValue } from "./storage";
 
-const KEY = "carte.foodProfile.v1";
+const KEY = "tavue.foodProfile.v1";
+const LEGACY_KEYS = ["carte.foodProfile.v1"];
 
 export type FoodPreference =
   | "contains_nuts"
@@ -23,7 +25,7 @@ export const EMPTY_FOOD_PROFILE: FoodProfile = { avoid: [], prefer: [] };
 
 export async function getFoodProfile(): Promise<FoodProfile> {
   try {
-    const raw = await AsyncStorage.getItem(KEY);
+    const raw = await readMigratedValue(KEY, LEGACY_KEYS);
     if (!raw) return EMPTY_FOOD_PROFILE;
     const parsed = JSON.parse(raw) as Partial<FoodProfile>;
     return {
