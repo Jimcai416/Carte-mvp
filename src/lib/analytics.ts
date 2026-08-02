@@ -2,7 +2,7 @@ import { Platform } from "react-native";
 import { API_URL } from "./api";
 import { getClientId } from "./identity";
 
-const APP_VERSION = "0.6.1";
+const APP_VERSION = "0.6.2";
 
 export type AnalyticsEventName =
   | "app_opened"

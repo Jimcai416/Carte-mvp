@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   FlatList,
   Modal,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -101,13 +102,40 @@ function ServerOrderView({
 
   useEffect(() => {
     return () => {
-      if (originalBrightness.current !== null) {
+      if (Platform.OS !== "web" && originalBrightness.current !== null) {
         void Brightness.setBrightnessAsync(originalBrightness.current).catch(() => {});
       }
     };
   }, []);
 
+  useEffect(() => {
+    if (Platform.OS !== "web" || typeof document === "undefined") return;
+
+    const themeColor = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+    const previousThemeColor = themeColor?.content;
+    const previousHtmlBackground = document.documentElement.style.backgroundColor;
+    const previousBodyBackground = document.body.style.backgroundColor;
+    const nextBackground = bright ? colors.surfaceRaised : colors.background;
+
+    themeColor?.setAttribute("content", nextBackground);
+    document.documentElement.style.backgroundColor = nextBackground;
+    document.body.style.backgroundColor = nextBackground;
+
+    return () => {
+      if (themeColor && previousThemeColor) themeColor.content = previousThemeColor;
+      document.documentElement.style.backgroundColor = previousHtmlBackground;
+      document.body.style.backgroundColor = previousBodyBackground;
+    };
+  }, [bright]);
+
   async function toggleBrightness() {
+    if (Platform.OS === "web") {
+      // Browsers cannot change device brightness. Use a visibly brighter,
+      // high-contrast presentation instead so the control remains useful.
+      setBright((current) => !current);
+      return;
+    }
+
     try {
       if (!bright) {
         originalBrightness.current = await Brightness.getBrightnessAsync();
@@ -130,6 +158,7 @@ function ServerOrderView({
     <View
       style={[
         styles.serverScreen,
+        bright && styles.serverScreenBright,
         { paddingTop: insets.top + space(2), paddingBottom: insets.bottom + space(3) },
       ]}
     >
@@ -152,7 +181,11 @@ function ServerOrderView({
           onPress={toggleBrightness}
           hitSlop={10}
           accessibilityRole="button"
-          accessibilityLabel="Increase screen brightness"
+          accessibilityLabel={
+            Platform.OS === "web"
+              ? "Toggle high-contrast display"
+              : "Increase screen brightness"
+          }
           accessibilityState={{ selected: bright }}
         >
           <Text style={[styles.sun, bright && styles.sunActive]}>☼</Text>
@@ -185,7 +218,7 @@ function ServerOrderView({
             item.dish.original_category?.trim() || item.dish.category?.trim();
 
           return (
-            <View style={styles.serverLine}>
+            <View style={[styles.serverLine, bright && styles.serverLineBright]}>
               <View style={styles.serverLineTop}>
                 <View style={styles.serverQtyBox}>
                   <Text style={styles.serverQty}>{item.qty}</Text>
@@ -221,7 +254,11 @@ function ServerOrderView({
         }}
       />
 
-      <Pressable style={styles.backToCart} onPress={onBack} accessibilityRole="button">
+      <Pressable
+        style={[styles.backToCart, bright && styles.backToCartBright]}
+        onPress={onBack}
+        accessibilityRole="button"
+      >
         <Text style={styles.backToCartText}>‹ {t("orderTitle")}</Text>
       </Pressable>
       <Pressable onPress={onClose} hitSlop={8} accessibilityRole="button">
@@ -269,9 +306,10 @@ export default function OrderCart({
 
   return (
     <Modal
+      key={serverMode ? "server-order" : "order-cart"}
       visible={visible}
-      transparent
-      animationType="slide"
+      transparent={!serverMode}
+      animationType={serverMode ? "fade" : "slide"}
       onRequestClose={serverMode ? () => setServerMode(false) : onClose}
     >
       {serverMode ? (
@@ -477,6 +515,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     paddingHorizontal: space(5),
   },
+  serverScreenBright: {
+    backgroundColor: colors.surfaceRaised,
+  },
   serverHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -496,7 +537,7 @@ const styles = StyleSheet.create({
   },
   serverHeaderButtonActive: {
     borderColor: colors.accent,
-    backgroundColor: "#F8E9E5",
+    backgroundColor: colors.accentStrong,
   },
   serverBack: { color: colors.text, fontSize: 30, lineHeight: 31, marginTop: -2 },
   sun: {
@@ -505,7 +546,7 @@ const styles = StyleSheet.create({
     fontSize: 23,
     lineHeight: 25,
   },
-  sunActive: { color: colors.accentStrong },
+  sunActive: { color: colors.onAccent },
   serverHeaderCopy: { flex: 1, alignItems: "center" },
   serverEyebrow: {
     fontFamily: fonts.mono,
@@ -565,6 +606,11 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 5 },
     elevation: 1,
+  },
+  serverLineBright: {
+    borderColor: colors.lineStrong,
+    shadowOpacity: 0,
+    elevation: 0,
   },
   serverLineTop: { flexDirection: "row", alignItems: "flex-start", gap: space(3) },
   serverQtyBox: {
@@ -656,6 +702,9 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: colors.lineStrong,
     backgroundColor: colors.surfaceRaised,
+  },
+  backToCartBright: {
+    borderColor: colors.accentStrong,
   },
   backToCartText: {
     fontFamily: fonts.bodyBold,
