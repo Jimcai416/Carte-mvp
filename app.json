@@ -2,7 +2,7 @@
   "expo": {
     "name": "Carte",
     "slug": "dishlens",
-    "version": "0.5.13",
+    "version": "0.6.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -28,6 +28,15 @@
       "blockedPermissions": [
         "android.permission.RECORD_AUDIO"
       ]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/icon.png",
+      "name": "Carte — Menu, made clear",
+      "shortName": "Carte",
+      "themeColor": "#F7F3EE",
+      "backgroundColor": "#F7F3EE"
     },
     "plugins": [
       [

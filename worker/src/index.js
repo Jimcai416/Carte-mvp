@@ -125,7 +125,7 @@ async function handleRequest(request, env) {
 
   const url = new URL(request.url);
   if (request.method === "GET" && url.pathname === "/health") {
-    return json({ ok: true, service: "carte-api", version: "0.5.13" }, 200, cors);
+    return json({ ok: true, service: "carte-api", version: "0.6.0" }, 200, cors);
   }
   if (request.method === "GET" && url.pathname === "/privacy") {
     return html(privacyPage(env));

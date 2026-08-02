@@ -75,6 +75,8 @@ const EN: Strings = {
   totalWord: "Total",
   heroTitle: "Your menu, made clear.",
   scanMenuSub: "Take a straight-on photo",
+  instantWeb: "NO DOWNLOAD · INSTANT WEB",
+  webScanMenuSub: "Take a photo or choose one",
   cancelScan: "Cancel",
   readingMenu: "Reading menu",
   makingMenuClear: "Making this menu clear",
