@@ -1,6 +1,6 @@
 # TAVUE brand and migration record
 
-Status: **locked for the 0.8.0 release**
+Status: **locked for the 0.8.3 release**
 Decision date: **2 August 2026**
 
 ## Brand
@@ -28,8 +28,11 @@ separate app:
 These are technical identifiers, not public branding.
 
 The existing Sentry organisation slug `carte-lab` is also retained in Expo's
-upload configuration. Runtime releases are labelled `Tavue@0.8.0`; changing the
-organisation slug is an external Sentry migration, not an app rename.
+upload configuration. Runtime releases are labelled `Tavue@<APP_VERSION>` from
+`src/config.ts`, currently **`Tavue@0.8.2`**. Quote the constant rather than a
+literal here so this record cannot drift out of step with the build again;
+changing the organisation slug is an external Sentry migration, not an app
+rename.
 
 ## Logo
 

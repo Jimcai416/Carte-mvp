@@ -117,6 +117,9 @@ const EN: Strings = {
   flagVegetarian: "Vegetarian",
   flagVegan: "Vegan",
   flagHouseSpecial: "House special",
+  generatedBadge: "AI",
+  generatedImageNote: "Illustration only — the restaurant's dish may look different.",
+  photoCreditA11y: "Photo credit — open the source page",
 };
 
 const STRINGS: Record<string, Strings> = {
@@ -214,6 +217,9 @@ const STRINGS: Record<string, Strings> = {
     flagVegetarian: "素食",
     flagVegan: "纯素",
     flagHouseSpecial: "招牌",
+    generatedBadge: "AI",
+    generatedImageNote: "示意图，与餐厅实际出品可能不同。",
+    photoCreditA11y: "图片署名 — 打开原图页",
   },
   "Chinese (Traditional)": {
     anyMenu: "任何菜單",
@@ -308,6 +314,9 @@ const STRINGS: Record<string, Strings> = {
     flagVegetarian: "素食",
     flagVegan: "純素",
     flagHouseSpecial: "招牌",
+    generatedBadge: "AI",
+    generatedImageNote: "示意圖，與餐廳實際出品可能不同。",
+    photoCreditA11y: "圖片署名 — 開啟原圖頁",
   },
   French: {
     anyMenu: "N'importe quel menu",
@@ -399,6 +408,9 @@ const STRINGS: Record<string, Strings> = {
     flagVegetarian: "Végétarien",
     flagVegan: "Végane",
     flagHouseSpecial: "Spécialité",
+    generatedBadge: "IA",
+    generatedImageNote: "Image d'illustration — le plat servi peut différer.",
+    photoCreditA11y: "Crédit photo — ouvrir la page source",
   },
   Italian: {
     anyMenu: "Qualsiasi menù",
@@ -490,6 +502,9 @@ const STRINGS: Record<string, Strings> = {
     flagVegetarian: "Vegetariano",
     flagVegan: "Vegano",
     flagHouseSpecial: "Specialità",
+    generatedBadge: "IA",
+    generatedImageNote: "Immagine indicativa — il piatto servito può differire.",
+    photoCreditA11y: "Crediti foto — apri la pagina di origine",
   },
   Spanish: {
     anyMenu: "Cualquier menú",
@@ -581,6 +596,9 @@ const STRINGS: Record<string, Strings> = {
     flagVegetarian: "Vegetariano",
     flagVegan: "Vegano",
     flagHouseSpecial: "Especialidad",
+    generatedBadge: "IA",
+    generatedImageNote: "Imagen orientativa — el plato servido puede variar.",
+    photoCreditA11y: "Crédito de la foto — abrir la página de origen",
   },
   Japanese: {
     anyMenu: "どんなメニューでも",
@@ -672,6 +690,9 @@ const STRINGS: Record<string, Strings> = {
     flagVegetarian: "ベジタリアン",
     flagVegan: "ヴィーガン",
     flagHouseSpecial: "店のおすすめ",
+    generatedBadge: "AI",
+    generatedImageNote: "イメージ画像です。実際の料理と異なる場合があります。",
+    photoCreditA11y: "写真クレジット — 出典ページを開く",
   },
   Korean: {
     anyMenu: "어떤 메뉴든",
@@ -763,6 +784,9 @@ const STRINGS: Record<string, Strings> = {
     flagVegetarian: "채식",
     flagVegan: "비건",
     flagHouseSpecial: "대표 메뉴",
+    generatedBadge: "AI",
+    generatedImageNote: "예시 이미지입니다. 실제 요리와 다를 수 있습니다.",
+    photoCreditA11y: "사진 출처 — 원본 페이지 열기",
   },
   Thai: {
     anyMenu: "เมนูอะไรก็ได้",
@@ -854,6 +878,9 @@ const STRINGS: Record<string, Strings> = {
     flagVegetarian: "มังสวิรัติ",
     flagVegan: "วีแกน",
     flagHouseSpecial: "เมนูแนะนำ",
+    generatedBadge: "AI",
+    generatedImageNote: "ภาพประกอบ — อาหารจริงของร้านอาจแตกต่าง",
+    photoCreditA11y: "เครดิตภาพ — เปิดหน้าต้นฉบับ",
   },
 };
 

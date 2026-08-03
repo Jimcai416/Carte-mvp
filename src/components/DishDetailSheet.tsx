@@ -1,6 +1,7 @@
 import React from "react";
 import {
   Image,
+  Linking,
   Modal,
   Pressable,
   ScrollView,
@@ -10,6 +11,7 @@ import {
 } from "react-native";
 import { Dish } from "../types";
 import { useT } from "../lib/i18n";
+import { attributionLine, resolveDishImage } from "../lib/dishImage";
 import { convertedPriceForDish } from "../lib/currency";
 import { colors, fonts, radius, space } from "../theme";
 import { DishFlagPill } from "./DishCard";
@@ -34,28 +36,48 @@ export default function DishDetailSheet({
   const t = useT();
   if (!dish) return null;
   const convertedPrice = showConverted ? convertedPriceForDish(dish) : null;
+  const image = resolveDishImage(dish);
 
   return (
     <Modal visible transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose}>
         <Pressable style={styles.sheet} onPress={() => {}}>
-          <View style={styles.handle} />
+          {/* Without a photo behind it the white handle would be invisible. */}
+          <View style={[styles.handle, !image && styles.handleOnSurface]} />
 
           <ScrollView
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scrollContent}
           >
-            {dish.image_url ? (
-              <Image source={{ uri: dish.image_url }} style={styles.image} resizeMode="cover" />
-            ) : (
-              <View style={[styles.image, styles.placeholder]}>
-                <Text style={styles.placeholderGlyph}>
-                  {dish.original_name.trim().slice(0, 1).toUpperCase()}
-                </Text>
+            {/* No image: the sheet opens straight onto the dish name instead
+                of a 226pt empty panel. */}
+            {image ? (
+              <View>
+                <Image source={{ uri: image.url }} style={styles.image} resizeMode="cover" />
+                {image.source === "generated" && (
+                  <View style={styles.generatedBadge}>
+                    <Text style={styles.generatedBadgeText}>{t("generatedBadge")}</Text>
+                  </View>
+                )}
               </View>
-            )}
+            ) : null}
 
-            <View style={styles.content}>
+            {image?.source === "commons" && image.attribution ? (
+              <Pressable
+                style={styles.creditRow}
+                onPress={() => Linking.openURL(image.attribution!.url).catch(() => {})}
+                accessibilityRole="link"
+                accessibilityLabel={t("photoCreditA11y")}
+              >
+                <Text style={styles.credit}>{attributionLine(image.attribution)}</Text>
+              </Pressable>
+            ) : null}
+
+            {image?.source === "generated" ? (
+              <Text style={styles.generatedNote}>{t("generatedImageNote")}</Text>
+            ) : null}
+
+            <View style={[styles.content, !image && styles.contentNoImage]}>
               <View style={styles.eyebrowRow}>
                 <Text style={styles.eyebrow}>
                   {(dish.category || t("menuGuide")).toUpperCase()}
@@ -168,19 +190,51 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     backgroundColor: "rgba(255,255,255,0.72)",
   },
+  handleOnSurface: { backgroundColor: colors.lineStrong },
   scrollContent: { paddingBottom: space(3) },
   image: {
     width: "100%",
     height: 226,
     backgroundColor: colors.background,
   },
-  placeholder: { alignItems: "center", justifyContent: "center" },
-  placeholderGlyph: {
-    fontFamily: fonts.display,
-    fontSize: 82,
-    color: colors.lineStrong,
+  generatedBadge: {
+    position: "absolute",
+    right: space(3),
+    top: space(3),
+    borderRadius: radius.pill,
+    backgroundColor: "rgba(43,33,29,0.62)",
+    paddingHorizontal: space(2),
+    paddingVertical: 2,
+  },
+  generatedBadgeText: {
+    color: "#FFF",
+    fontFamily: fonts.bodyMedium,
+    fontSize: 9,
+    lineHeight: 14,
+    letterSpacing: 0.8,
+  },
+  creditRow: {
+    paddingHorizontal: space(5),
+    paddingTop: space(2),
+  },
+  credit: {
+    fontFamily: fonts.body,
+    fontSize: 10,
+    lineHeight: 14,
+    color: colors.muted,
+    textDecorationLine: "underline",
+  },
+  generatedNote: {
+    paddingHorizontal: space(5),
+    paddingTop: space(2),
+    fontFamily: fonts.body,
+    fontSize: 10,
+    lineHeight: 14,
+    color: colors.muted,
   },
   content: { padding: space(5), paddingBottom: space(3) },
+  // The sheet needs breathing room at the top when no photo precedes it.
+  contentNoImage: { paddingTop: space(7) },
   eyebrowRow: {
     flexDirection: "row",
     alignItems: "center",

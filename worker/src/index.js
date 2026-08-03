@@ -4,17 +4,19 @@
 //
 // Pipeline:
 //   1. One multimodal Claude call: OCR + translate + structure the menu.
-//   2. For each dish, resolve a photo: KV cache → Google Image Search → null.
+//   2. For each dish, resolve a photo: R2 cache → Wikimedia Commons →
+//      Workers AI generation → null. See src/dishImages.js and
+//      docs/IMAGE-SOURCING.md.
 //
 // Secrets (set with `wrangler secret put NAME`):
 //   ANTHROPIC_API_KEY   required
-//   GOOGLE_CSE_KEY      optional — Google Custom Search API key
-//   GOOGLE_CSE_CX       optional — Programmable Search Engine ID (image search on)
-// KV binding (optional but recommended): DISH_IMAGES
+// Bindings: DISH_IMAGES (KV), DISH_IMAGE_BUCKET (R2), AI (Workers AI)
 
 // Haiku: ~3-4x faster than Sonnet for extraction tasks like this.
 // Override per-deploy with `wrangler secret put MODEL` if quality needs a bump
 // (e.g. back to "claude-sonnet-4-20250514").
+import { dishImageKey, resolveDishImage } from "./dishImages.js";
+
 const DEFAULT_MODEL = "claude-haiku-4-5-20251001";
 const MAX_DISHES = 80;
 const MAX_TOKENS = 16000;
@@ -74,7 +76,8 @@ Rules:
 - Convert every printed price to GBP using a reasonable approximate exchange rate and put it in "price_gbp", formatted like "£4.80". This keeps earlier beta builds compatible.
 - Also convert every printed price to ${targetCurrency} using a reasonable approximate exchange rate and put it in "converted_price", formatted with the correct currency symbol or ISO code. Set top-level "display_currency" to exactly "${targetCurrency}".
 - If no price is printed, use null for "price", "price_gbp" and "converted_price".
-- "image_query" must ALWAYS be a short English search query that returns photos of this exact dish, e.g. "wonton lo mein noodles" — English regardless of the target language.
+- "canonical_name": the established name of this dish, written in its own language and script, when the dish is a named dish that would have its own Wikipedia article — e.g. "Coq au vin", "麻婆豆腐", "ほうとう", "Cacio e pepe". Use null when the line is the restaurant's own descriptive wording rather than a named dish — e.g. "Filet de bar, fenouil confit, jus au safran", "Grilled lamb with seasonal vegetables". The test is whether the dish has its own encyclopedia entry, NOT whether the name is short. A long name can be canonical ("Spaghetti alla puttanesca"); a short one may not be ("Chef's salad of the day").
+- "canonical_lang": BCP-47 language code of "canonical_name" (fr, it, ja, zh, ko, th, es, en …). Null when "canonical_name" is null.
 - "spice_level": 0 none, 1 mild, 2 medium, 3 hot.
 - Respond with ONLY valid JSON. No markdown, no code fences, no preamble.
 
@@ -99,7 +102,8 @@ JSON schema:
       "spice_level": 0 | 1 | 2 | 3,
       "flags": ("spicy"|"raw"|"offal"|"contains_nuts"|"contains_shellfish"|"contains_gluten"|"contains_dairy"|"vegetarian"|"vegan"|"house_special")[],
       "worth_it": string | null,
-      "image_query": string
+      "canonical_name": string | null,
+      "canonical_lang": string | null
     }
   ]
 }`;
@@ -119,11 +123,18 @@ export default {
   },
 };
 
-async function handleRequest(request, env) {
+async function handleRequest(request, rawEnv) {
   const cors = corsHeaders();
   if (request.method === "OPTIONS") return new Response(null, { headers: cors });
 
   const url = new URL(request.url);
+  // Stored images are served from this Worker unless a CDN sits in front of
+  // the bucket. Deriving the origin here keeps the URLs absolute without
+  // hard-coding the deployment hostname.
+  const env = {
+    ...rawEnv,
+    IMAGE_BASE_URL: rawEnv.IMAGE_BASE_URL || `${url.origin}/images`,
+  };
   if (request.method === "GET" && url.pathname === "/health") {
     return json({ ok: true, service: "tavue-api", version: "0.8.0" }, 200, cors);
   }
@@ -132,6 +143,15 @@ async function handleRequest(request, env) {
   }
   if (request.method === "GET" && url.pathname === "/support") {
     return html(supportPage(env));
+  }
+  if (request.method === "GET" && url.pathname.startsWith("/images/")) {
+    let key = "";
+    try {
+      key = decodeURIComponent(url.pathname.slice("/images/".length));
+    } catch {
+      key = "";
+    }
+    return serveImage(env, key.includes("/") ? "" : key, cors);
   }
 
   const clientId = readClientId(request);
@@ -451,16 +471,31 @@ async function scan(request, env, clientId, cors) {
   const batchSize = parseInt(env.IMAGE_BATCH_SIZE || "10", 10);
   const toLookup = dishes.slice(0, cap);
 
+  // The model decides whether a dish has a canonical name; the cache key is
+  // derived here because it is a hash, not a judgement call.
+  for (const dish of dishes) {
+    dish.image_key = await dishImageKey(dish);
+  }
+
+  // Menus repeat themselves — the same drink in two sections, a half and a
+  // full portion of one dish. Resolve each key once per scan.
+  const inFlight = new Map();
   for (let i = 0; i < toLookup.length; i += batchSize) {
     const batch = toLookup.slice(i, i + batchSize);
     await Promise.all(
       batch.map(async (dish) => {
-        dish.image_url = await resolveImage(env, dish);
+        if (!dish.image_key) return;
+        if (!inFlight.has(dish.image_key)) {
+          inFlight.set(dish.image_key, resolveDishImage(dish, env));
+        }
+        dish.image = await inFlight.get(dish.image_key);
       })
     );
   }
   for (const dish of dishes) {
-    if (dish.image_url === undefined) dish.image_url = null;
+    if (!dish.image) dish.image = null;
+    // Older beta builds only understand a bare URL.
+    dish.image_url = dish.image?.url || null;
   }
   parsed.dishes = dishes;
   parsed.display_currency = currency;
@@ -537,104 +572,28 @@ function errorCode(error) {
   return "upstream_failure";
 }
 
-// Cache key: normalised dish identity, shared across all users forever.
-function cacheKey(dish) {
-  return `img:${dish.original_name}`.toLowerCase().replace(/\s+/g, "");
-}
-
-async function resolveImage(env, dish) {
-  // KV cache hit → free
-  if (env.DISH_IMAGES) {
-    const cached = await env.DISH_IMAGES.get(cacheKey(dish));
-    if (cached) return cached === "none" ? null : cached;
+// Serves the bytes we stored in R2. Keeps the beta on one origin; point
+// IMAGE_BASE_URL at a custom domain in front of the bucket to bypass it.
+async function serveImage(env, key, cors) {
+  if (!env.DISH_IMAGE_BUCKET || !key) {
+    return json({ error: "Not found", code: "image_not_found" }, 404, cors);
+  }
+  const object = await env.DISH_IMAGE_BUCKET.get(`dishes/${key}`).catch(
+    () => null
+  );
+  if (!object) {
+    return json({ error: "Not found", code: "image_not_found" }, 404, cors);
   }
 
-  let link = null;
-  if (env.BRAVE_API_KEY) {
-    link = await braveImage(env, dish);
-  } else if (env.GOOGLE_CSE_KEY && env.GOOGLE_CSE_CX) {
-    link = await googleImage(env, dish);
-  } else {
-    // No image search configured → graceful null (app shows glyph placeholder)
-    return null;
-  }
-
-  if (env.DISH_IMAGES) {
-    // Cache misses too, so we never pay twice for the same dish.
-    await env.DISH_IMAGES.put(cacheKey(dish), link || "none", {
-      expirationTtl: link ? 60 * 60 * 24 * 90 : 60 * 60 * 24 * 7,
-    });
-  }
-  return link;
-}
-
-// Domains that produce watermarked stock, ad creatives, or recipe title-cards.
-const IMAGE_DOMAIN_BLOCKLIST = [
-  "pinterest.",
-  "alamy.com",
-  "shutterstock.com",
-  "gettyimages.",
-  "istockphoto.com",
-  "dreamstime.com",
-  "depositphotos.com",
-  "123rf.com",
-  "stock.adobe.com",
-  "vectorstock.com",
-  "etsy.com",
-  "amazon.",
-  "ebay.",
-];
-
-function isBlockedSource(result) {
-  const src = (
-    result?.url ||
-    result?.meta_url?.hostname ||
-    result?.source ||
-    ""
-  ).toLowerCase();
-  return IMAGE_DOMAIN_BLOCKLIST.some((d) => src.includes(d));
-}
-
-async function braveImage(env, dish, attempt = 0) {
-  try {
-    const q = encodeURIComponent(`${dish.image_query} dish food`);
-    const res = await fetch(
-      `https://api.search.brave.com/res/v1/images/search?q=${q}&count=3&safesearch=strict`,
-      {
-        headers: {
-          Accept: "application/json",
-          "X-Subscription-Token": env.BRAVE_API_KEY,
-        },
-      }
-    );
-    if (res.status === 429 && attempt < 1) {
-      // Rate limited — wait a beat and retry once.
-      await new Promise((r) => setTimeout(r, 1100));
-      return braveImage(env, dish, attempt + 1);
-    }
-    if (!res.ok) return null;
-    const data = await res.json();
-    const results = data.results || [];
-    // First non-blocklisted candidate; fall back to the first result at all.
-    const pick = results.find((r) => !isBlockedSource(r)) || results[0];
-    return pick?.properties?.url || pick?.thumbnail?.src || null;
-  } catch {
-    return null;
-  }
-}
-
-async function googleImage(env, dish) {
-  try {
-    const q = encodeURIComponent(`${dish.image_query} dish food`);
-    const res = await fetch(
-      `https://www.googleapis.com/customsearch/v1?key=${env.GOOGLE_CSE_KEY}&cx=${env.GOOGLE_CSE_CX}&searchType=image&num=1&imgSize=large&safe=active&q=${q}`
-    );
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data.items?.[0]?.link || null;
-  } catch {
-    return null;
-  }
+  return new Response(object.body, {
+    headers: {
+      ...cors,
+      "Content-Type": object.httpMetadata?.contentType || "image/jpeg",
+      "Cache-Control": "public, max-age=31536000, immutable",
+      "X-Content-Type-Options": "nosniff",
+      ETag: object.httpEtag,
+    },
+  });
 }
 
 function corsHeaders() {
@@ -776,7 +735,7 @@ function privacyPage(env) {
 
 <h2>Menu scans</h2>
 <p>When you choose to scan, the menu photo is sent securely to Tavue’s Cloudflare-hosted service and then to Anthropic’s commercial API for menu recognition and translation. Tavue does not save the menu photo in its own storage. Anthropic normally deletes API inputs and outputs within 30 days, subject to limited safety, legal, and contractual exceptions.</p>
-<p>The resulting menu is returned to your device. Recent-menu history is stored locally on your device. To find representative dish images, Tavue may send short food-name search queries—not the menu photo or your identifier—to Brave Search or Google Programmable Search.</p>
+<p>The resulting menu is returned to your device. Recent-menu history is stored locally on your device. Dish images come from two sources, neither of which receives your menu photo or your identifier: freely licensed photographs looked up on Wikidata and Wikimedia Commons using the dish name alone, and illustrations generated on Cloudflare Workers AI from the dish description. Resolved images are cached and served by Tavue.</p>
 
 <h2>Security and beta analytics</h2>
 <p>Tavue creates a random installation identifier for abuse prevention, daily scan limits, and first-party beta analytics. Analytics contain only approved event names such as scan started/completed, duration, dish count, detail opened, order added, and history reopened. They do not contain menu photos, menu text, dish names, prices, free-form content, advertising identifiers, or precise location. The identifier is irreversibly hashed before analytics storage. Cloudflare Analytics Engine retains these beta events for three months.</p>
@@ -785,7 +744,7 @@ function privacyPage(env) {
 <p>If crash monitoring is enabled, Sentry may receive crash and diagnostic information such as app version, platform, stack trace, and an error category. Tavue disables default personal information, screenshots, view hierarchy, and request-body collection. Optional feedback contains the message you type plus platform and app version, and is automatically deleted after 180 days.</p>
 
 <h2>Sharing, advertising, and tracking</h2>
-<p>Tavue does not sell personal data, serve targeted advertising, or track users across other companies’ apps and websites. Service providers process data only to operate Tavue: Cloudflare for hosting and analytics, Anthropic for AI processing, Sentry for diagnostics when configured, and Brave or Google for dish-image search.</p>
+<p>Tavue does not sell personal data, serve targeted advertising, or track users across other companies’ apps and websites. Service providers process data only to operate Tavue: Cloudflare for hosting, image storage, image generation and analytics, Anthropic for AI processing, Sentry for diagnostics when configured, and the Wikimedia Foundation for freely licensed dish photographs.</p>
 
 <h2>Your choices and rights</h2>
 <p>You can decline AI processing and continue using any menus already saved on your device. Removing Tavue deletes its local history and random identifier. UK and EEA users may request access, correction, deletion, restriction, or objection where applicable.</p>

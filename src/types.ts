@@ -12,6 +12,18 @@ export type DishFlag =
   | "vegan"
   | "house_special";
 
+export interface DishImageAttribution {
+  artist: string;              // author as credited on Wikimedia Commons
+  licence: string;             // e.g. "CC BY-SA 4.0"
+  url: string;                 // Commons file page, for the full credit
+}
+
+export interface DishImage {
+  url: string;
+  source: "commons" | "generated";
+  attribution?: DishImageAttribution; // always present for "commons"
+}
+
 export interface Dish {
   category?: string | null;    // translated section heading used by the app
   original_category?: string | null; // section exactly as printed, for server handoff
@@ -26,8 +38,11 @@ export interface Dish {
   spice_level: 0 | 1 | 2 | 3;
   flags: DishFlag[];
   worth_it: string | null;     // one-line ordering advice
-  image_url: string | null;    // resolved by the worker (cached lookup)
-  image_query: string;         // fallback query if image_url is null
+  canonical_name?: string | null; // established dish name, or null if descriptive
+  canonical_lang?: string | null; // BCP-47 code for canonical_name
+  image_key?: string;          // stable cache key derived by the worker
+  image?: DishImage | null;    // resolved photo plus its provenance
+  image_url?: string | null;   // legacy bare URL, kept for older beta builds
 }
 
 export interface ScanResult {

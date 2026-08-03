@@ -7,8 +7,8 @@
 
 Tavue turns a photo of a restaurant menu into a clear, visual guide. It
 translates and organises the menu, explains unfamiliar dishes, shows dietary
-and allergen guidance, converts prices and helps the user build an order to
-show the server.
+and allergen guidance, converts prices into any of thirteen supported
+currencies and helps the user build an order to show the server.
 
 `scan a menu → explore dishes → build an order → show the server`
 
@@ -19,6 +19,8 @@ show the server.
 - Camera and photo-library menu scanning
 - Claude-powered OCR, translation and menu structuring
 - Menu sections, dietary filters and compact visual dish cards
+- Freely licensed Wikimedia Commons photographs for named dishes, with credit,
+  and generated illustrations for descriptive menu lines, clearly marked
 - Dish explanations, ingredients, prices and ordering advice
 - Allergen and dietary guidance with a visible confirmation warning
 - Persistent display-currency selection with approximate converted prices
@@ -78,14 +80,20 @@ npx wrangler secret put ANTHROPIC_API_KEY
 npx wrangler deploy
 ```
 
-Optional image-search secrets:
+Dish images need an R2 bucket for the bytes and the Workers AI binding for
+generated illustrations. Both are declared in `wrangler.toml`; create the
+bucket once before the first deploy:
 
 ```bash
-npx wrangler secret put BRAVE_API_KEY
-# or
-npx wrangler secret put GOOGLE_CSE_KEY
-npx wrangler secret put GOOGLE_CSE_CX
+npx wrangler r2 bucket create tavue-dish-images
 ```
+
+Attribution records fall back to the `FEEDBACK` KV namespace with isolated
+`img:` keys. Create a dedicated `DISH_IMAGES` namespace and uncomment its
+binding to separate them. Images are served from this Worker's `/images` route
+by default; set the `IMAGE_BASE_URL` var to a custom domain in front of the
+bucket to serve them from the edge instead. No image-search API keys are
+required — see [`docs/IMAGE-SOURCING.md`](docs/IMAGE-SOURCING.md).
 
 The beta requires an anonymous client ID, limits each installation to six scan
 attempts per minute and allows 20 scans per day. Daily counters use
@@ -97,6 +105,7 @@ Worker endpoints:
 - `POST /scan` — scan and structure a menu
 - `POST /events` — strict, content-free beta event allowlist
 - `POST /feedback` — beta feedback collection
+- `GET /images/:key` — cached dish images from R2
 - `GET /health` — deployment health and release version
 - `GET /privacy` — privacy policy
 - `GET /support` — support page
@@ -127,16 +136,19 @@ src/
     analytics.ts
     api.ts
     currency.ts
+    dishImage.ts
     history.ts
     identity.ts
     monitoring.ts
     privacy.ts
 worker/
   src/index.js
+  src/dishImages.js
   analytics.sql
   wrangler.toml
 docs/
   APP-STORE-PRIVACY.md
+  IMAGE-SOURCING.md
   PRIVACY-POLICY.md
   TESTFLIGHT.md
 ```
@@ -144,10 +156,12 @@ docs/
 ## Release handoff
 
 - Brand rules and migration record: [`docs/BRAND.md`](docs/BRAND.md)
+- Dish image pipeline and attribution duties: [`docs/IMAGE-SOURCING.md`](docs/IMAGE-SOURCING.md)
 - TestFlight and EAS instructions: [`docs/TESTFLIGHT.md`](docs/TESTFLIGHT.md)
 - App Store privacy answers: [`docs/APP-STORE-PRIVACY.md`](docs/APP-STORE-PRIVACY.md)
 - Privacy policy source: [`docs/PRIVACY-POLICY.md`](docs/PRIVACY-POLICY.md)
 
-Before a public release, complete physical-device accessibility testing, review
-photo-source licensing and replace the paywall prototype with the chosen
-billing implementation.
+Before a public release, complete physical-device accessibility testing, put a
+monitored address behind the image-rights contact in
+[`docs/IMAGE-SOURCING.md`](docs/IMAGE-SOURCING.md) and replace the paywall
+prototype with the chosen billing implementation.

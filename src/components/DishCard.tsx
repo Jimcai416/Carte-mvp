@@ -2,12 +2,14 @@ import React from "react";
 import {
   GestureResponderEvent,
   Image,
+  Linking,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from "react-native";
 import { useT } from "../lib/i18n";
+import { attributionLine, resolveDishImage } from "../lib/dishImage";
 import { Dish, DishFlag } from "../types";
 import { colors, fonts, radius, space } from "../theme";
 
@@ -66,6 +68,7 @@ export default function DishCard({
   personalRisk?: boolean;
 }) {
   const t = useT();
+  const image = resolveDishImage(dish);
 
   function handleAdd(event: GestureResponderEvent) {
     event.stopPropagation();
@@ -77,29 +80,30 @@ export default function DishCard({
       style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
       onPress={onPress}
     >
-      <View style={styles.imageWrap}>
-        {dish.image_url ? (
-          <Image source={{ uri: dish.image_url }} style={styles.image} resizeMode="cover" />
-        ) : (
-          <View style={[styles.image, styles.placeholder]}>
-            <Text style={styles.placeholderGlyph}>
-              {dish.original_name.trim().slice(0, 1).toUpperCase()}
-            </Text>
-          </View>
-        )}
-        {dish.spice_level > 0 && (
-          <View style={styles.spiceBadge}>
-            <Text style={styles.spiceText}>{"•".repeat(dish.spice_level)}</Text>
-          </View>
-        )}
-        {personalRisk && (
-          <View style={styles.riskBadge}>
-            <Text style={styles.riskText}>CHECK</Text>
-          </View>
-        )}
-      </View>
+      {/* No image at all: the row drops the thumbnail entirely rather than
+          reserving an empty box, and the badges move in beside the name. */}
+      {image ? (
+        <View style={styles.imageWrap}>
+          <Image source={{ uri: image.url }} style={styles.image} resizeMode="cover" />
+          {image.source === "generated" && (
+            <View style={styles.generatedBadge}>
+              <Text style={styles.generatedBadgeText}>{t("generatedBadge")}</Text>
+            </View>
+          )}
+          {dish.spice_level > 0 && (
+            <View style={styles.spiceBadge}>
+              <Text style={styles.spiceText}>{"•".repeat(dish.spice_level)}</Text>
+            </View>
+          )}
+          {personalRisk && (
+            <View style={styles.riskBadge}>
+              <Text style={styles.riskText}>CHECK</Text>
+            </View>
+          )}
+        </View>
+      ) : null}
 
-      <View style={styles.body}>
+      <View style={[styles.body, !image && styles.bodyFullWidth]}>
         <View style={styles.topLine}>
           <Text style={styles.originalName} numberOfLines={1}>
             {dish.original_name}
@@ -130,8 +134,36 @@ export default function DishCard({
           </Text>
         ) : null}
 
+        {image?.source === "commons" && image.attribution ? (
+          <Pressable
+            onPress={(event) => {
+              event.stopPropagation();
+              Linking.openURL(image.attribution!.url).catch(() => {});
+            }}
+            hitSlop={6}
+            accessibilityRole="link"
+            accessibilityLabel={t("photoCreditA11y")}
+          >
+            <Text style={styles.credit} numberOfLines={1}>
+              {attributionLine(image.attribution)}
+            </Text>
+          </Pressable>
+        ) : null}
+
         <View style={styles.footer}>
           <View style={styles.flagRow}>
+            {!image && personalRisk && (
+              <View style={styles.inlineRisk}>
+                <Text style={styles.inlineRiskText}>CHECK</Text>
+              </View>
+            )}
+            {!image && dish.spice_level > 0 && (
+              <View style={styles.inlineSpice}>
+                <Text style={styles.inlineSpiceText}>
+                  {"•".repeat(dish.spice_level)}
+                </Text>
+              </View>
+            )}
             {dish.flags.slice(0, 2).map((flag) => (
               <DishFlagPill key={flag} flag={flag} />
             ))}
@@ -184,11 +216,21 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   image: { width: "100%", height: "100%" },
-  placeholder: { alignItems: "center", justifyContent: "center" },
-  placeholderGlyph: {
-    fontFamily: fonts.display,
-    fontSize: 48,
-    color: colors.lineStrong,
+  generatedBadge: {
+    position: "absolute",
+    right: space(1),
+    top: space(1),
+    borderRadius: radius.pill,
+    backgroundColor: "rgba(43,33,29,0.62)",
+    paddingHorizontal: space(1.25),
+    paddingVertical: 1,
+  },
+  generatedBadgeText: {
+    color: "#FFF",
+    fontFamily: fonts.bodyMedium,
+    fontSize: 7,
+    lineHeight: 11,
+    letterSpacing: 0.6,
   },
   spiceBadge: {
     position: "absolute",
@@ -227,6 +269,7 @@ const styles = StyleSheet.create({
     paddingRight: space(1),
     paddingVertical: space(1),
   },
+  bodyFullWidth: { paddingLeft: space(1) },
   topLine: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -267,6 +310,42 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginTop: space(1.5),
     opacity: 0.82,
+  },
+  // CC BY and CC BY-SA require the credit to travel with the photograph, so
+  // it appears on the card as well as in the detail sheet.
+  credit: {
+    fontFamily: fonts.body,
+    fontSize: 8,
+    lineHeight: 12,
+    color: colors.muted,
+    marginTop: space(1),
+    textDecorationLine: "underline",
+  },
+  inlineSpice: {
+    borderRadius: radius.pill,
+    backgroundColor: colors.dangerWash,
+    paddingHorizontal: space(1.5),
+    paddingVertical: 3,
+  },
+  inlineSpiceText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 8,
+    lineHeight: 10,
+    letterSpacing: 1,
+    color: colors.danger,
+  },
+  inlineRisk: {
+    borderRadius: radius.pill,
+    backgroundColor: colors.danger,
+    paddingHorizontal: space(1.5),
+    paddingVertical: 3,
+  },
+  inlineRiskText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 8,
+    lineHeight: 10,
+    letterSpacing: 0.8,
+    color: "#FFF",
   },
   footer: {
     minHeight: 30,

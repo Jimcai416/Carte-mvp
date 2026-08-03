@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { Dish } from "../types";
 import { useT } from "../lib/i18n";
+import { attributionLine, resolveDishImage } from "../lib/dishImage";
 import { convertedPriceForDish } from "../lib/currency";
 import { colors, fonts, radius, space } from "../theme";
 
@@ -47,6 +48,7 @@ export default function OrderSheet({
 
   if (!dish) return null;
   const convertedPrice = showConverted ? convertedPriceForDish(dish) : null;
+  const image = resolveDishImage(dish);
 
   return (
     <Modal visible transparent={false} animationType="slide" onRequestClose={onClose}>
@@ -56,8 +58,25 @@ export default function OrderSheet({
         </Pressable>
 
         <View style={styles.card} ref={cardRef} collapsable={false}>
-          {dish.image_url ? (
-            <Image source={{ uri: dish.image_url }} style={styles.image} resizeMode="cover" />
+          {image ? (
+            <Image
+              source={{ uri: image.url }}
+              style={[styles.image, image.source && styles.imageWithCredit]}
+              resizeMode="cover"
+            />
+          ) : null}
+
+          {/* The card gets shared as a picture, so the credit has to be
+              baked into it rather than sit in the app around it. */}
+          {image?.source === "commons" && image.attribution ? (
+            <Text style={styles.credit} numberOfLines={1}>
+              {attributionLine(image.attribution)}
+            </Text>
+          ) : null}
+          {image?.source === "generated" ? (
+            <Text style={styles.credit} numberOfLines={2}>
+              {t("generatedImageNote")}
+            </Text>
           ) : null}
 
           <Text
@@ -122,6 +141,15 @@ const styles = StyleSheet.create({
     borderRadius: radius.image,
     marginBottom: space(5),
     backgroundColor: colors.paperLine,
+  },
+  imageWithCredit: { marginBottom: space(2) },
+  credit: {
+    fontFamily: fonts.body,
+    fontSize: 9,
+    lineHeight: 13,
+    color: colors.muted,
+    textAlign: "center",
+    marginBottom: space(4),
   },
   original: {
     fontFamily: fonts.native,

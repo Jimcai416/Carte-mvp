@@ -5,10 +5,24 @@ compatibility_date = "2026-07-26"
 [vars]
 REQUIRE_CLIENT_ID = "true"
 DAILY_SCAN_LIMIT = "20"
+# Public prefix the stored dish images are served from. Left unset, the Worker
+# uses its own /images route. Point this at a custom domain in front of the R2
+# bucket to serve them from the edge instead.
+# IMAGE_BASE_URL = "https://images.example.com"
 
-# Optional but recommended: dish image cache.
+# Dish image bytes — Commons photographs and generated illustrations alike.
+# Create with:  npx wrangler r2 bucket create tavue-dish-images
+[[r2_buckets]]
+binding = "DISH_IMAGE_BUCKET"
+bucket_name = "tavue-dish-images"
+
+# Generated dish illustrations (@cf/black-forest-labs/flux-1-schnell).
+[ai]
+binding = "AI"
+
+# Per-image source and attribution records. Optional: the pipeline falls back
+# to the FEEDBACK namespace with isolated `img:` keys.
 # Create with:  npx wrangler kv namespace create DISH_IMAGES
-# then paste the id below and uncomment.
 # [[kv_namespaces]]
 # binding = "DISH_IMAGES"
 # id = "YOUR_KV_NAMESPACE_ID"

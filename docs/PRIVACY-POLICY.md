@@ -14,9 +14,16 @@ storage. Anthropic normally deletes API inputs and outputs within 30 days,
 subject to limited safety, legal, and contractual exceptions.
 
 The resulting menu is returned to the user's device. Recent-menu history is
-stored locally on that device. To find representative dish images, Tavue may
-send short food-name search queries—not the menu photo or user identifier—to
-Brave Search or Google Programmable Search.
+stored locally on that device.
+
+Dish images come from two sources. Neither receives the menu photo or the user
+identifier. For dishes with an established name, Tavue looks that name up on
+Wikidata and retrieves a freely licensed photograph from Wikimedia Commons. For
+menu lines written in a restaurant's own words, Tavue generates an illustration
+on Cloudflare Workers AI from the dish description. Resolved images are cached
+in Cloudflare R2 and served by Tavue, so the same dish is fetched or generated
+only once. Image sourcing, attribution and takedowns are described in
+[`IMAGE-SOURCING.md`](IMAGE-SOURCING.md).
 
 ## Security and beta analytics
 
@@ -44,10 +51,11 @@ Tavue does not sell personal data, serve targeted advertising, or track users
 across other companies' apps and websites. Service providers process data only
 to operate Tavue:
 
-- Cloudflare for hosting, rate limiting, logs, and first-party analytics
+- Cloudflare for hosting, rate limiting, logs, first-party analytics, dish
+  image storage and dish image generation
 - Anthropic for AI menu processing
 - Sentry for diagnostics when configured
-- Brave Search or Google Programmable Search for representative dish images
+- The Wikimedia Foundation for freely licensed dish photographs
 
 ## User choices and rights
 
